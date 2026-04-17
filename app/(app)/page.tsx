@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { currentAppUser } from "@/lib/auth";
+import { getMonthlyTotals } from "@/lib/dashboard";
+import { DonationsChart } from "@/components/DonationsChart";
 
 const ORG = process.env.NEXT_PUBLIC_ORG_NAME ?? "Donation Portal";
 
 export default async function Home() {
   const user = await currentAppUser();
   const isAdmin = user?.role === "admin";
+  const data = await getMonthlyTotals();
 
   const actions = [
     {
@@ -97,6 +100,14 @@ export default async function Home() {
             </Link>
           ))}
         </div>
+      </section>
+
+      {/* Giving over time */}
+      <section className="mb-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
+          Giving over time
+        </h2>
+        <DonationsChart data={data} />
       </section>
 
       {isAdmin && (
