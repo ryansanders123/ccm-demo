@@ -16,7 +16,9 @@ export async function currentAppUser(): Promise<AppUser | null> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase.rpc("current_app_user");
   if (error || !data) return null;
-  return data as AppUser;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || !row.id) return null;
+  return row as AppUser;
 }
 
 export async function requireUser(): Promise<AppUser> {
