@@ -1,7 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireUser } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { doneeInputSchema, donationInputSchema, voidInputSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 
@@ -64,7 +64,7 @@ export async function addDonation(input: unknown) {
 }
 
 export async function voidDonation(input: unknown) {
-  const user = await requireUser();
+  const user = await requireAdmin();
   const parsed = voidInputSchema.parse(input);
   const supabase = createSupabaseServerClient();
   const { error } = await supabase

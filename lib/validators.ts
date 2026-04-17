@@ -23,7 +23,10 @@ export const donationInputSchema = z.object({
 
 export const voidInputSchema = z.object({
   id: uuid,
-  reason: z.string().trim().min(1).max(500),
+  reason: z.string().trim().min(20, "reason must be at least 20 characters").max(500),
+  confirm: z.literal("VOID", {
+    errorMap: () => ({ message: "type VOID to confirm" }),
+  }),
 });
 
 export const inviteInputSchema = z.object({

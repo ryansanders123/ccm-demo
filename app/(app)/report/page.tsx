@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { summarize, monthRange } from "@/lib/reports";
+import { currentAppUser } from "@/lib/auth";
 
 const PAGE_SIZE = 25;
 
@@ -19,6 +20,8 @@ export default async function ReportPage({
   const includeVoided = searchParams.voided === "1";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
 
+  const user = await currentAppUser();
+  const isAdmin = user?.role === "admin";
   const supabase = createSupabaseServerClient();
 
   let q = supabase
@@ -280,14 +283,14 @@ export default async function ReportPage({
                       <span className="text-[11px] uppercase tracking-wider text-red-700/80 font-medium">
                         Voided
                       </span>
-                    ) : (
+                    ) : isAdmin ? (
                       <Link
                         href={`/donations/${r.id}/void`}
-                        className="text-xs font-medium text-red-700 hover:text-red-800 hover:underline"
+                        className="text-xs font-medium text-stone-500 hover:text-red-700 hover:underline"
                       >
-                        Void
+                        Void…
                       </Link>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}
