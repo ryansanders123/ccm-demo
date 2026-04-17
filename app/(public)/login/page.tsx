@@ -20,21 +20,66 @@ function LoginContent() {
   }
 
   const errMsg =
-    error === "unverified" ? "Your provider didn't confirm your email address."
-    : error === "not-invited" ? "This email isn't on the invite list. Ask an admin to invite you."
-    : error === "removed"     ? "Your access has been revoked. Contact an admin."
-    : error                   ? "Sign-in error. Please try again."
-    : null;
+    error === "unverified"
+      ? "Your provider didn't confirm your email address."
+      : error === "not-invited"
+      ? "This email isn't on the invite list. Ask an admin to invite you."
+      : error === "removed"
+      ? "Your access has been revoked. Contact an admin."
+      : error
+      ? "Sign-in error. Please try again."
+      : null;
 
   return (
-    <main className="w-full max-w-sm p-8 bg-white rounded-lg shadow-lg border-t-4 border-brand">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={LOGO} alt={ORG} className="h-16 w-auto mx-auto mb-4" />
-      <h1 className="text-xl font-serif text-center mb-6 text-brand">{ORG}</h1>
-      {errMsg && <div className="mb-4 p-3 bg-red-50 text-red-800 rounded text-sm">{errMsg}</div>}
-      <div className="space-y-3">
-        <button onClick={() => signIn("google")}    className="w-full py-2 px-4 border border-brand rounded text-brand hover:bg-brand hover:text-white transition-colors">Sign in with Google</button>
-        <button onClick={() => signIn("azure")}     className="w-full py-2 px-4 border border-brand rounded text-brand hover:bg-brand hover:text-white transition-colors">Sign in with Microsoft</button>
+    <main className="w-full max-w-md animate-fade-in">
+      <div className="relative">
+        {/* Decorative gradient ring */}
+        <div
+          aria-hidden
+          className="absolute -inset-[1px] rounded-3xl bg-gradient-to-b from-brand-200/50 via-stone-200/40 to-stone-200/20 pointer-events-none"
+        />
+        <div className="relative bg-white rounded-3xl shadow-pop border border-stone-200/70 p-8 md:p-10">
+          <div className="flex flex-col items-center text-center mb-8">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO} alt={ORG} className="h-20 w-auto mb-5" />
+            <h1 className="font-serif text-2xl md:text-[28px] leading-tight text-stone-900 tracking-tight">
+              {ORG}
+            </h1>
+            <p className="text-sm text-stone-500 mt-2">
+              Sign in to access the donation portal.
+            </p>
+          </div>
+
+          {errMsg && (
+            <div
+              role="alert"
+              className="mb-5 p-3 bg-red-50 text-red-800 rounded-xl text-sm border border-red-200/70"
+            >
+              {errMsg}
+            </div>
+          )}
+
+          <div className="space-y-2.5">
+            <button
+              onClick={() => signIn("google")}
+              className="btn btn-secondary w-full py-2.5 text-[15px]"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+            <button
+              onClick={() => signIn("azure")}
+              className="btn btn-secondary w-full py-2.5 text-[15px]"
+            >
+              <MicrosoftIcon />
+              Continue with Microsoft
+            </button>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-stone-400">
+            Access is invite-only. Contact an administrator if you need to be added.
+          </p>
+        </div>
       </div>
     </main>
   );
@@ -45,5 +90,39 @@ export default function LoginPage() {
     <Suspense fallback={null}>
       <LoginContent />
     </Suspense>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908c1.702-1.568 2.684-3.875 2.684-6.615z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"
+      />
+    </svg>
+  );
+}
+
+function MicrosoftIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <rect x="0" y="0" width="8" height="8" fill="#F25022" />
+      <rect x="10" y="0" width="8" height="8" fill="#7FBA00" />
+      <rect x="0" y="10" width="8" height="8" fill="#00A4EF" />
+      <rect x="10" y="10" width="8" height="8" fill="#FFB900" />
+    </svg>
   );
 }

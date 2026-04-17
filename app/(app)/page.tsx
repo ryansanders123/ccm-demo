@@ -1,28 +1,264 @@
+import Link from "next/link";
 import { currentAppUser } from "@/lib/auth";
+
+const ORG = process.env.NEXT_PUBLIC_ORG_NAME ?? "Donation Portal";
 
 export default async function Home() {
   const user = await currentAppUser();
+  const isAdmin = user?.role === "admin";
+
+  const actions = [
+    {
+      href: "/donations/add",
+      title: "Add Donation",
+      description: "Record a new cash, check, or online gift.",
+      icon: <PlusIcon />,
+      accent: "from-brand-50 to-brand-100 text-brand-700 ring-brand-200",
+    },
+    {
+      href: "/report",
+      title: "Monthly Report",
+      description: "Review totals by fund, type, and donor.",
+      icon: <ChartIcon />,
+      accent: "from-amber-50 to-amber-100 text-amber-800 ring-amber-200",
+    },
+    {
+      href: "/tax-summary",
+      title: "Tax Summary",
+      description: "Generate annual giving statements for donors.",
+      icon: <ReceiptIcon />,
+      accent: "from-emerald-50 to-emerald-100 text-emerald-800 ring-emerald-200",
+    },
+  ];
+
+  const adminActions = [
+    {
+      href: "/admin/funds",
+      title: "Manage Funds",
+      description: "Add and archive designated funds.",
+      icon: <FolderIcon />,
+    },
+    {
+      href: "/admin/users",
+      title: "Manage Users",
+      description: "Invite members and set permissions.",
+      icon: <UsersIcon />,
+    },
+  ];
+
   return (
-    <main className="max-w-3xl mx-auto p-8">
-      <h1 className="font-serif text-3xl text-brand mb-4">Welcome</h1>
-      <p className="mb-6 text-gray-700">
-        Signed in as <span className="font-medium">{user?.email}</span>
-        {user?.role === "admin" && <span className="ml-2 text-xs uppercase tracking-wide text-brand">Admin</span>}
-      </p>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="font-serif text-lg text-brand mb-3">Phase 1 complete</h2>
-        <ul className="text-sm text-gray-700 space-y-1">
-          <li>Authentication (Google / Microsoft SSO)</li>
-          <li>Invite-based gating</li>
-          <li>Supabase schema + RLS</li>
-        </ul>
-        <h2 className="font-serif text-lg text-brand mt-6 mb-3">Coming next</h2>
-        <ul className="text-sm text-gray-500 space-y-1">
-          <li>Add Donation (Phase 2)</li>
-          <li>Reports + Tax Summary (Phase 3)</li>
-          <li>Admin: Funds &amp; Users (Phase 4)</li>
-        </ul>
-      </div>
-    </main>
+    <div className="animate-fade-in">
+      {/* Hero */}
+      <section className="mb-10 md:mb-12">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="chip-brand">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+            Signed in as {user?.email}
+          </span>
+          {isAdmin && (
+            <span className="chip-neutral">
+              <span className="h-1.5 w-1.5 rounded-full bg-stone-500" />
+              Admin
+            </span>
+          )}
+        </div>
+        <h1 className="font-serif text-4xl md:text-5xl font-medium text-stone-900 tracking-tight leading-[1.1] text-balance">
+          Welcome to <span className="text-brand-700">{ORG}</span>
+        </h1>
+        <p className="mt-4 text-lg text-stone-600 max-w-2xl text-pretty">
+          Record contributions, track fund performance, and prepare donor tax
+          statements — all in one place.
+        </p>
+      </section>
+
+      {/* Quick actions */}
+      <section className="mb-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
+          Quick actions
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {actions.map((a) => (
+            <Link key={a.href} href={a.href} className="card-interactive p-6 block group">
+              <div
+                className={`h-11 w-11 rounded-xl bg-gradient-to-br ring-1 flex items-center justify-center mb-4 ${a.accent}`}
+              >
+                {a.icon}
+              </div>
+              <div className="font-serif text-xl text-stone-900 mb-1 group-hover:text-brand-700 transition-colors">
+                {a.title}
+              </div>
+              <div className="text-sm text-stone-600 text-pretty">
+                {a.description}
+              </div>
+              <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+                Open
+                <ArrowRightIcon />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {isAdmin && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
+            Administration
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {adminActions.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="card-interactive p-5 flex items-start gap-4 group"
+              >
+                <div className="h-10 w-10 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center shrink-0">
+                  {a.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-stone-900 group-hover:text-brand-700 transition-colors">
+                    {a.title}
+                  </div>
+                  <div className="text-sm text-stone-600 mt-0.5">
+                    {a.description}
+                  </div>
+                </div>
+                <ArrowRightIcon className="text-stone-400 group-hover:text-brand-700 transition-colors mt-1" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/* --- inline icons (minimal, 20x20 stroke) --- */
+
+function PlusIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M10 4v12M4 10h12"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 16V9M10 16V4M16 16v-5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ReceiptIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 3h10v14l-2.5-1.5L10 17l-2.5-1.5L5 17V3z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 7h4M8 10h4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 6a1 1 0 011-1h3.5L9 6.5h7a1 1 0 011 1V15a1 1 0 01-1 1H4a1 1 0 01-1-1V6z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="7.5" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M3 16c0-2.2 2-4 4.5-4s4.5 1.8 4.5 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13 11a2 2 0 100-4M13.5 16c0-1.6.5-2.8 1.5-3.5 1.8.2 3 1.7 3 3.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 8h10m0 0L9 4m4 4l-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
