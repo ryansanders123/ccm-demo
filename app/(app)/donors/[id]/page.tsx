@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getDonorDetail } from "@/lib/donors";
-import { DonorPivot } from "@/components/DonorPivot";
+import { DonorChart } from "@/components/DonorChart";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +47,8 @@ export default async function DonorDetailPage({ params }: { params: { id: string
       </header>
 
       <section className="mb-8">
-        <h2 className="section-eyebrow">Pivot</h2>
-        <DonorPivot gifts={gifts} />
+        <h2 className="section-eyebrow">Giving over time</h2>
+        <DonorChart gifts={gifts} />
       </section>
 
       <section>

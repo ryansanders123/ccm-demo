@@ -49,53 +49,27 @@ export type DonorDetail = {
   pivot: DonorPivot;
 };
 
-const PAGE = 1000;
-
 export async function getDonorList(): Promise<DonorListRow[]> {
   const supabase = createSupabaseServerClient();
 
-  const { data: donees, error: doneeErr } = await supabase
-    .from("donees")
-    .select("id,name,email,phone")
+  // Single round-trip via the donor_list_v view (migration 0010) — Postgres
+  // does the aggregation; no in-app paging through 12k donations.
+  const { data, error } = await supabase
+    .from("donor_list_v")
+    .select("id,name,email,phone,lifetime_total,gift_count,last_gift_at")
     .order("name", { ascending: true });
-  if (doneeErr) throw new Error(doneeErr.message);
+  if (error) throw new Error(error.message);
 
-  // Page through donations to compute aggregates. Voided excluded.
-  const totals = new Map<string, { sum: number; count: number; last: string | null }>();
-  let from = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from("donations")
-      .select("donee_id,amount,date_received")
-      .is("voided_at", null)
-      .range(from, from + PAGE - 1);
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) break;
-    for (const r of data as { donee_id: string; amount: string; date_received: string }[]) {
-      const cur = totals.get(r.donee_id) ?? { sum: 0, count: 0, last: null as string | null };
-      cur.sum += Number(r.amount);
-      cur.count += 1;
-      if (!cur.last || r.date_received > cur.last) cur.last = r.date_received;
-      totals.set(r.donee_id, cur);
-    }
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-
-  return ((donees ?? []) as { id: string; name: string; email: string | null; phone: string | null }[]).map(
-    (d) => {
-      const t = totals.get(d.id);
-      return {
-        id: d.id,
-        name: d.name,
-        email: d.email,
-        phone: d.phone,
-        lifetime_total: t?.sum ?? 0,
-        gift_count: t?.count ?? 0,
-        last_gift_at: t?.last ?? null,
-      };
-    }
-  );
+  type Row = { id: string; name: string; email: string | null; phone: string | null; lifetime_total: string | number; gift_count: number; last_gift_at: string | null };
+  return ((data ?? []) as Row[]).map((d) => ({
+    id: d.id,
+    name: d.name,
+    email: d.email,
+    phone: d.phone,
+    lifetime_total: Number(d.lifetime_total),
+    gift_count: d.gift_count,
+    last_gift_at: d.last_gift_at,
+  }));
 }
 
 export async function getDonorDetail(id: string): Promise<DonorDetail | null> {

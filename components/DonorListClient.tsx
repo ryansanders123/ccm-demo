@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { DonorListRow } from "@/lib/donors";
 
 type SortKey = "name" | "lifetime" | "last" | "count";
@@ -12,6 +12,7 @@ const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("lifetime");
   const [page, setPage] = useState(1);
@@ -46,10 +47,6 @@ export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
   const safePage = Math.min(page, totalPages);
   const slice = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const lifetimeShown = filtered.reduce((acc, d) => acc + d.lifetime_total, 0);
-  const giftCountShown = filtered.reduce((acc, d) => acc + d.gift_count, 0);
-  const avgGift = giftCountShown > 0 ? lifetimeShown / giftCountShown : 0;
-
   return (
     <>
       <form
@@ -83,21 +80,6 @@ export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
         </div>
       </form>
 
-      <section className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-        <div className="stat">
-          <div className="stat-label">Donors shown</div>
-          <div className="stat-value">{filtered.length.toLocaleString()}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Lifetime giving</div>
-          <div className="stat-value text-brand-700">{fmtUsd(lifetimeShown)}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Avg gift size</div>
-          <div className="stat-value">{fmtUsd(avgGift)}</div>
-        </div>
-      </section>
-
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -113,12 +95,15 @@ export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
             </thead>
             <tbody className="divide-y divide-stone-100">
               {slice.map((d) => (
-                <tr key={d.id} className="hover:bg-stone-50/60 transition-colors">
-                  <td className="px-4 py-3 font-medium text-stone-900">
-                    <Link href={`/donors/${d.id}`} className="hover:text-brand-700 hover:underline">
-                      {d.name}
-                    </Link>
-                  </td>
+                <tr
+                  key={d.id}
+                  onClick={() => router.push(`/donors/${d.id}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") router.push(`/donors/${d.id}`); }}
+                  tabIndex={0}
+                  role="link"
+                  className="cursor-pointer hover:bg-brand-50/40 focus:bg-brand-50/40 focus:outline-none transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium text-stone-900">{d.name}</td>
                   <td className="px-4 py-3 text-stone-600 truncate max-w-[260px]">{d.email ?? ""}</td>
                   <td className="px-4 py-3 text-stone-600">{d.phone ?? ""}</td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium text-stone-900">
