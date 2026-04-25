@@ -46,14 +46,10 @@ export default async function DonorDetailPage({ params }: { params: { id: string
         </div>
       </header>
 
-      <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+      <section className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <div className="stat">
           <div className="stat-label">Lifetime giving</div>
           <div className="stat-value text-brand-700">{fmtUsd(pivot.grand)}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-label"># Gifts</div>
-          <div className="stat-value">{gifts.length.toLocaleString()}</div>
         </div>
         <div className="stat">
           <div className="stat-label">Last gift</div>

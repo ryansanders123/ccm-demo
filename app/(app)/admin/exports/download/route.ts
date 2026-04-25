@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { csvRow } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ const nameOf = (rel: Joined): string => {
 };
 
 export async function GET(req: NextRequest) {
-  await requireAdmin();
+  await requireUser();
   const url = new URL(req.url);
   const type = url.searchParams.get("type") === "detail" ? "detail" : "summary";
   const year = parseInt(url.searchParams.get("year") ?? String(new Date().getFullYear()), 10);

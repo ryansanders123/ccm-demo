@@ -13,7 +13,7 @@ const fmtUsd = (n: number) =>
 
 export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<SortKey>("name");
+  const [sort, setSort] = useState<SortKey>("lifetime");
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
@@ -75,8 +75,8 @@ export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
             onChange={(e) => { setSort(e.target.value as SortKey); setPage(1); }}
             className="input w-48"
           >
-            <option value="name">Name (A–Z)</option>
             <option value="lifetime">Lifetime $ (high → low)</option>
+            <option value="name">Name (A–Z)</option>
             <option value="last">Last gift (recent → old)</option>
             <option value="count"># gifts (high → low)</option>
           </select>
