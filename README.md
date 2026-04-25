@@ -19,10 +19,15 @@ generate donor tax statements.
 
 ## Auth model
 
-Google OAuth via Supabase. Email-identity model: the `public.users` table is
-the source of truth, linked to `auth.users` by `auth_user_id`. First sign-in
-flows through `/auth/callback` → `runCallbackGate()` which matches the OAuth
-email to an invited row and links it. Non-invited users are rejected.
+Three sign-in methods: Google OAuth, Microsoft (Entra) OAuth, and email magic
+link — all via Supabase Auth. Email-identity model: the `public.users` table
+is the source of truth, linked to `auth.users` by `auth_user_id`. First
+sign-in flows through `/auth/callback` → `runCallbackGate()` which matches
+the OAuth email to an invited row and links it. Non-invited users are
+rejected.
+
+See [`docs/sso-setup.md`](docs/sso-setup.md) for the one-time external setup
+required to enable Microsoft sign-in.
 
 RLS is enforced on every table. All policies check `public.is_app_user()`
 (see the composite-NULL gotcha in **Known Issues** below). Admin-only

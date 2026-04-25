@@ -11,15 +11,21 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const [y, m] = (url.searchParams.get("month") ?? new Date().toISOString().slice(0, 7)).split("-").map(Number);
   const includeVoided = url.searchParams.get("voided") === "1";
+  const fundFilter = url.searchParams.get("fund") ?? "";
+  const campaignFilter = url.searchParams.get("campaign") ?? "";
+  const appealFilter = url.searchParams.get("appeal") ?? "";
   const { start, end } = monthRange(y, m);
 
   const supabase = createSupabaseServerClient();
   let q = supabase
     .from("donations")
-    .select("date_received,type,amount,check_number,reference_id,note,voided_at,void_reason,donees(name),funds(name)")
+    .select("date_received,type,amount,check_number,reference_id,note,voided_at,void_reason,donees(name),funds(name),campaigns(name),appeals(name)")
     .gte("date_received", start).lt("date_received", end)
     .order("date_received", { ascending: true });
   if (!includeVoided) q = q.is("voided_at", null);
+  if (fundFilter) q = q.eq("fund_id", fundFilter);
+  if (campaignFilter) q = q.eq("campaign_id", campaignFilter);
+  if (appealFilter) q = q.eq("appeal_id", appealFilter);
   const { data } = await q;
 
   type ExportRow = {
@@ -33,6 +39,8 @@ export async function GET(req: NextRequest) {
     void_reason: string | null;
     donees: { name: string } | { name: string }[] | null;
     funds: { name: string } | { name: string }[] | null;
+    campaigns: { name: string } | { name: string }[] | null;
+    appeals: { name: string } | { name: string }[] | null;
   };
   const nameOf = (rel: { name: string } | { name: string }[] | null | undefined): string => {
     if (!rel) return "";
@@ -46,7 +54,7 @@ export async function GET(req: NextRequest) {
       ctrl.enqueue(enc.encode(csvRow(CSV_HEADERS) + "\n"));
       for (const r of ((data ?? []) as ExportRow[])) {
         ctrl.enqueue(enc.encode(csvRow([
-          r.date_received, nameOf(r.donees), r.type, nameOf(r.funds), r.amount,
+          r.date_received, nameOf(r.donees), r.type, nameOf(r.funds), nameOf(r.campaigns), nameOf(r.appeals), r.amount,
           r.check_number ?? "", r.reference_id ?? "", r.note ?? "",
           r.voided_at ? "true" : "false", r.void_reason ?? "",
         ]) + "\n"));

@@ -42,15 +42,34 @@ export async function addDonation(input: unknown) {
   const parsed = donationInputSchema.parse(input);
   const supabase = createSupabaseServerClient();
 
-  // Fund must not be archived at insert time.
-  const { data: fund, error: fErr } = await supabase
-    .from("funds").select("id, archived_at").eq("id", parsed.fund_id).single();
-  if (fErr || !fund) throw new Error("Fund not found");
-  if (fund.archived_at) throw new Error("Fund is archived");
+  const fundId = parsed.fund_id && parsed.fund_id !== "" ? parsed.fund_id : null;
+  const campaignId = parsed.campaign_id && parsed.campaign_id !== "" ? parsed.campaign_id : null;
+  const appealId = parsed.appeal_id && parsed.appeal_id !== "" ? parsed.appeal_id : null;
+
+  if (fundId) {
+    const { data: fund, error: fErr } = await supabase
+      .from("funds").select("id, archived_at").eq("id", fundId).single();
+    if (fErr || !fund) throw new Error("Fund not found");
+    if (fund.archived_at) throw new Error("Fund is archived");
+  }
+  if (campaignId) {
+    const { data: c, error: cErr } = await supabase
+      .from("campaigns").select("id, archived_at").eq("id", campaignId).single();
+    if (cErr || !c) throw new Error("Campaign not found");
+    if (c.archived_at) throw new Error("Campaign is archived");
+  }
+  if (appealId) {
+    const { data: a, error: aErr } = await supabase
+      .from("appeals").select("id, archived_at").eq("id", appealId).single();
+    if (aErr || !a) throw new Error("Appeal not found");
+    if (a.archived_at) throw new Error("Appeal is archived");
+  }
 
   const { error } = await supabase.from("donations").insert({
     donee_id: parsed.donee_id,
-    fund_id: parsed.fund_id,
+    fund_id: fundId,
+    campaign_id: campaignId,
+    appeal_id: appealId,
     type: parsed.type,
     amount: parsed.amount,
     date_received: parsed.date_received,

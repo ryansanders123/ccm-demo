@@ -5,9 +5,13 @@ const amount = z.string().regex(/^\d+(\.\d{1,2})?$/, "amount must have at most 2
   .refine(v => parseFloat(v) > 0, "amount must be > 0")
   .refine(v => parseFloat(v) <= 99999999.99, "amount too large");
 
+const optionalUuid = uuid.optional().nullable().or(z.literal(""));
+
 export const donationInputSchema = z.object({
   donee_id: uuid,
-  fund_id: uuid,
+  fund_id: optionalUuid,
+  campaign_id: optionalUuid,
+  appeal_id: optionalUuid,
   type: z.enum(["cash", "check", "online"]),
   amount,
   date_received: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -19,6 +23,12 @@ export const donationInputSchema = z.object({
   if (v.type !== "check" && v.check_number)  ctx.addIssue({ code: "custom", message: "check_number only allowed for checks", path: ["check_number"] });
   if (v.type === "online" && !v.reference_id) ctx.addIssue({ code: "custom", message: "reference_id required for online", path: ["reference_id"] });
   if (v.type !== "online" && v.reference_id)  ctx.addIssue({ code: "custom", message: "reference_id only allowed for online", path: ["reference_id"] });
+  const hasFund = !!v.fund_id && v.fund_id !== "";
+  const hasCampaign = !!v.campaign_id && v.campaign_id !== "";
+  const hasAppeal = !!v.appeal_id && v.appeal_id !== "";
+  if (!hasFund && !hasCampaign && !hasAppeal) {
+    ctx.addIssue({ code: "custom", message: "Pick at least one of Fund, Campaign, or Appeal", path: ["fund_id"] });
+  }
 });
 
 export const voidInputSchema = z.object({
@@ -41,5 +51,20 @@ export const doneeInputSchema = z.object({
 });
 
 export const fundInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+});
+
+export const campaignInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  goal_amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional().or(z.literal("")),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+}).superRefine((v, ctx) => {
+  if (v.start_date && v.end_date && v.start_date > v.end_date) {
+    ctx.addIssue({ code: "custom", message: "end_date must be after start_date", path: ["end_date"] });
+  }
+});
+
+export const appealInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
 });

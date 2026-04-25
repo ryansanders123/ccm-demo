@@ -10,5 +10,5 @@ export function csvRow(cols: (string | number | null | undefined)[]): string {
 }
 
 export const CSV_HEADERS = [
-  "date", "donee", "type", "fund", "amount", "check_number", "reference_id", "note", "voided", "void_reason",
+  "date", "donee", "type", "fund", "campaign", "appeal", "amount", "check_number", "reference_id", "note", "voided", "void_reason",
 ];

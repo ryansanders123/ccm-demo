@@ -19,6 +19,13 @@ export default async function Home() {
       accent: "from-brand-50 to-brand-100 text-brand-700 ring-brand-200",
     },
     {
+      href: "/donors",
+      title: "Browse Donors",
+      description: "Search donors and review their giving history.",
+      icon: <UsersIcon />,
+      accent: "from-sky-50 to-sky-100 text-sky-800 ring-sky-200",
+    },
+    {
       href: "/report",
       title: "Monthly Report",
       description: "Review totals by fund, type, and donor.",
@@ -40,6 +47,24 @@ export default async function Home() {
       title: "Manage Funds",
       description: "Add and archive designated funds.",
       icon: <FolderIcon />,
+    },
+    {
+      href: "/admin/campaigns",
+      title: "Manage Campaigns",
+      description: "Set up giving drives with goals and dates.",
+      icon: <FlagIcon />,
+    },
+    {
+      href: "/admin/appeals",
+      title: "Manage Appeals",
+      description: "Track which solicitation produced each gift.",
+      icon: <MegaphoneIcon />,
+    },
+    {
+      href: "/admin/exports",
+      title: "Bulk Exports",
+      description: "Download all-donor tax data as CSV for the year.",
+      icon: <DownloadIcon />,
     },
     {
       href: "/admin/users",
@@ -79,7 +104,7 @@ export default async function Home() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
           Quick actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {actions.map((a) => (
             <Link key={a.href} href={a.href} className="card-interactive p-6 block group">
               <div
@@ -248,6 +273,54 @@ function UsersIcon() {
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M5 3v14M5 4h9l-1.5 3.5L14 11H5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MegaphoneIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M3 8.5v3l9 3V5.5l-9 3z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 6.5L17 4v12l-5-2.5M6 11.5v3a1 1 0 001 1h1a1 1 0 001-1v-2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M10 3v9m0 0l4-4m-4 4l-4-4M4 14v1a2 2 0 002 2h8a2 2 0 002-2v-1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

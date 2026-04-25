@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 
@@ -10,6 +10,9 @@ const LOGO = process.env.NEXT_PUBLIC_ORG_LOGO_URL ?? "/logo.png";
 function LoginContent() {
   const params = useSearchParams();
   const error = params.get("error");
+  const [magicEmail, setMagicEmail] = useState("");
+  const [magicState, setMagicState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [magicError, setMagicError] = useState<string | null>(null);
 
   async function signIn(provider: "google" | "azure") {
     const supabase = createSupabaseBrowserClient();
@@ -17,6 +20,27 @@ function LoginContent() {
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+  }
+
+  async function sendMagicLink(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!magicEmail.trim()) return;
+    setMagicState("sending");
+    setMagicError(null);
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: magicEmail.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: false,
+      },
+    });
+    if (error) {
+      setMagicState("error");
+      setMagicError(error.message);
+    } else {
+      setMagicState("sent");
+    }
   }
 
   const errMsg =
@@ -75,6 +99,41 @@ function LoginContent() {
               Continue with Microsoft
             </button>
           </div>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-stone-400">
+            <span className="flex-1 h-px bg-stone-200" />
+            or sign in with email
+            <span className="flex-1 h-px bg-stone-200" />
+          </div>
+
+          {magicState === "sent" ? (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200/70 text-sm text-emerald-800">
+              Check <span className="font-medium">{magicEmail}</span> for a sign-in link.
+              You can close this tab.
+            </div>
+          ) : (
+            <form onSubmit={sendMagicLink} className="space-y-2.5">
+              <input
+                type="email"
+                required
+                value={magicEmail}
+                onChange={(e) => setMagicEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="input w-full"
+                autoComplete="email"
+              />
+              <button
+                type="submit"
+                disabled={magicState === "sending"}
+                className="btn btn-primary w-full py-2.5 text-[15px] disabled:opacity-60"
+              >
+                {magicState === "sending" ? "Sending…" : "Send magic link"}
+              </button>
+              {magicError && (
+                <div className="text-xs text-red-700">{magicError}</div>
+              )}
+            </form>
+          )}
 
           <p className="mt-6 text-center text-xs text-stone-400">
             Access is invite-only. Contact an administrator if you need to be added.

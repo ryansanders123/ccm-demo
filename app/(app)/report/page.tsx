@@ -13,21 +13,37 @@ function parseMonth(s?: string) {
 export default async function ReportPage({
   searchParams,
 }: {
-  searchParams: { month?: string; page?: string; voided?: string };
+  searchParams: {
+    month?: string;
+    page?: string;
+    voided?: string;
+    fund?: string;
+    campaign?: string;
+    appeal?: string;
+  };
 }) {
   const { year, month } = parseMonth(searchParams.month);
   const { start, end } = monthRange(year, month);
   const includeVoided = searchParams.voided === "1";
+  const fundFilter = searchParams.fund ?? "";
+  const campaignFilter = searchParams.campaign ?? "";
+  const appealFilter = searchParams.appeal ?? "";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
 
   const user = await currentAppUser();
   const isAdmin = user?.role === "admin";
   const supabase = createSupabaseServerClient();
 
+  const [{ data: fundsList }, { data: campaignsList }, { data: appealsList }] = await Promise.all([
+    supabase.from("funds").select("id,name").order("name"),
+    supabase.from("campaigns").select("id,name").order("name"),
+    supabase.from("appeals").select("id,name").order("name"),
+  ]);
+
   let q = supabase
     .from("donations")
     .select(
-      "id,amount,type,date_received,check_number,reference_id,voided_at,donees(name),funds(name)",
+      "id,amount,type,date_received,check_number,reference_id,voided_at,donees(name),funds(name),campaigns(name),appeals(name)",
       { count: "exact" }
     )
     .gte("date_received", start)
@@ -35,6 +51,9 @@ export default async function ReportPage({
     .order("date_received", { ascending: false });
 
   if (!includeVoided) q = q.is("voided_at", null);
+  if (fundFilter) q = q.eq("fund_id", fundFilter);
+  if (campaignFilter) q = q.eq("campaign_id", campaignFilter);
+  if (appealFilter) q = q.eq("appeal_id", appealFilter);
 
   const { data: rows, count } = await q.range(
     (page - 1) * PAGE_SIZE,
@@ -51,6 +70,8 @@ export default async function ReportPage({
     voided_at: string | null;
     donees: { name: string } | { name: string }[] | null;
     funds: { name: string } | { name: string }[] | null;
+    campaigns: { name: string } | { name: string }[] | null;
+    appeals: { name: string } | { name: string }[] | null;
   };
 
   const nameOf = (
@@ -74,11 +95,14 @@ export default async function ReportPage({
   }));
 
   // Fetch ALL rows for the month (no range) to compute totals, include voided if toggle on.
-  const totalsQ = supabase
+  let totalsQ = supabase
     .from("donations")
     .select("id,type,amount,voided_at,funds(name)")
     .gte("date_received", start)
     .lt("date_received", end);
+  if (fundFilter) totalsQ = totalsQ.eq("fund_id", fundFilter);
+  if (campaignFilter) totalsQ = totalsQ.eq("campaign_id", campaignFilter);
+  if (appealFilter) totalsQ = totalsQ.eq("appeal_id", appealFilter);
   const { data: allRows } = includeVoided
     ? await totalsQ
     : await totalsQ.is("voided_at", null);
@@ -140,6 +164,39 @@ export default async function ReportPage({
             className="input w-44"
           />
         </div>
+        <div>
+          <label htmlFor="fund" className="label">
+            Fund
+          </label>
+          <select id="fund" name="fund" defaultValue={fundFilter} className="input w-44">
+            <option value="">All funds</option>
+            {(fundsList ?? []).map((f: { id: string; name: string }) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="campaign" className="label">
+            Campaign
+          </label>
+          <select id="campaign" name="campaign" defaultValue={campaignFilter} className="input w-44">
+            <option value="">All campaigns</option>
+            {(campaignsList ?? []).map((c: { id: string; name: string }) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="appeal" className="label">
+            Appeal
+          </label>
+          <select id="appeal" name="appeal" defaultValue={appealFilter} className="input w-44">
+            <option value="">All appeals</option>
+            {(appealsList ?? []).map((a: { id: string; name: string }) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
         <label className="inline-flex items-center gap-2 text-sm text-stone-700 h-10 px-1">
           <input
             type="checkbox"
@@ -155,6 +212,9 @@ export default async function ReportPage({
           href={`/report/export?${qs({
             month: monthStr,
             voided: includeVoided ? "1" : "",
+            fund: fundFilter,
+            campaign: campaignFilter,
+            appeal: appealFilter,
           })}`}
           className="btn-outline ml-auto"
         >
@@ -332,6 +392,9 @@ export default async function ReportPage({
             href={`/report?${qs({
               month: monthStr,
               voided: includeVoided ? "1" : "",
+              fund: fundFilter,
+              campaign: campaignFilter,
+              appeal: appealFilter,
               page: page - 1,
             })}`}
             className="btn-secondary btn-sm"
@@ -347,6 +410,9 @@ export default async function ReportPage({
             href={`/report?${qs({
               month: monthStr,
               voided: includeVoided ? "1" : "",
+              fund: fundFilter,
+              campaign: campaignFilter,
+              appeal: appealFilter,
               page: page + 1,
             })}`}
             className="btn-secondary btn-sm"

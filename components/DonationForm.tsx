@@ -5,14 +5,27 @@ import { DoneePicker } from "@/components/DoneePicker";
 import { addDonation } from "@/app/(app)/donations/actions";
 import { useRouter } from "next/navigation";
 
-type Fund = { id: string; name: string };
+type Lookup = { id: string; name: string };
 
-export function DonationForm({ funds }: { funds: Fund[] }) {
+export function DonationForm({
+  funds,
+  campaigns,
+  appeals,
+}: {
+  funds: Lookup[];
+  campaigns: Lookup[];
+  appeals: Lookup[];
+}) {
   const router = useRouter();
   const [type, setType] = useState<"cash" | "check" | "online">("cash");
   const [doneeId, setDoneeId] = useState<string | null>(null);
+  const [fundId, setFundId] = useState<string>("");
+  const [campaignId, setCampaignId] = useState<string>("");
+  const [appealId, setAppealId] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const taxonomyChosen = !!(fundId || campaignId || appealId);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,7 +35,9 @@ export function DonationForm({ funds }: { funds: Fund[] }) {
     try {
       await addDonation({
         donee_id: doneeId,
-        fund_id: fd.get("fund_id"),
+        fund_id: fundId || null,
+        campaign_id: campaignId || null,
+        appeal_id: appealId || null,
         type,
         amount: String(fd.get("amount") ?? ""),
         date_received: String(fd.get("date_received") ?? ""),
@@ -106,18 +121,69 @@ export function DonationForm({ funds }: { funds: Fund[] }) {
 
       <DoneePicker onSelect={(d) => setDoneeId(d.id)} />
 
-      <div>
-        <label htmlFor="fund_id" className="label">
-          Fund
-        </label>
-        <select id="fund_id" name="fund_id" required className="input">
-          <option value="">Select a fund…</option>
-          {funds.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+      <div className="space-y-3 p-4 rounded-xl border border-stone-200 bg-stone-50/40">
+        <div className="text-xs uppercase tracking-wider text-stone-500 font-medium">
+          Categorization <span className="font-normal normal-case tracking-normal text-stone-400">— pick at least one</span>
+        </div>
+        <div>
+          <label htmlFor="fund_id" className="label">
+            Fund <span className="font-normal text-stone-400">(where the money goes)</span>
+          </label>
+          <select
+            id="fund_id"
+            value={fundId}
+            onChange={(e) => setFundId(e.target.value)}
+            className="input"
+          >
+            <option value="">— none —</option>
+            {funds.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="campaign_id" className="label">
+            Campaign <span className="font-normal text-stone-400">(what the goal is)</span>
+          </label>
+          <select
+            id="campaign_id"
+            value={campaignId}
+            onChange={(e) => setCampaignId(e.target.value)}
+            className="input"
+          >
+            <option value="">— none —</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="appeal_id" className="label">
+            Appeal <span className="font-normal text-stone-400">(how we asked)</span>
+          </label>
+          <select
+            id="appeal_id"
+            value={appealId}
+            onChange={(e) => setAppealId(e.target.value)}
+            className="input"
+          >
+            <option value="">— none —</option>
+            {appeals.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {!taxonomyChosen && (
+          <div className="text-xs text-amber-700">
+            Pick at least one of Fund, Campaign, or Appeal before saving.
+          </div>
+        )}
       </div>
 
       {type === "check" && (
@@ -155,11 +221,14 @@ export function DonationForm({ funds }: { funds: Fund[] }) {
       )}
 
       <div className="flex items-center gap-3 pt-2">
-        <button disabled={saving || !doneeId} className="btn-primary">
+        <button disabled={saving || !doneeId || !taxonomyChosen} className="btn-primary">
           {saving ? "Saving…" : "Save donation"}
         </button>
         {!doneeId && (
           <span className="text-xs text-stone-500">Select a donee to enable save</span>
+        )}
+        {doneeId && !taxonomyChosen && (
+          <span className="text-xs text-stone-500">Pick at least one of Fund / Campaign / Appeal</span>
         )}
       </div>
     </form>
