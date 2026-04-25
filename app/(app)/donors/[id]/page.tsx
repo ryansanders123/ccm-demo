@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getDonorDetail } from "@/lib/donors";
+import { DonorPivot } from "@/components/DonorPivot";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,7 @@ export default async function DonorDetailPage({ params }: { params: { id: string
   const detail = await getDonorDetail(params.id);
   if (!detail) notFound();
 
-  const { donee, gifts, pivot } = detail;
-  const lastGift = gifts[0]?.date_received ?? null;
+  const { donee, gifts } = detail;
   const fullAddr = [
     donee.address_line1,
     donee.address_line2,
@@ -46,67 +46,9 @@ export default async function DonorDetailPage({ params }: { params: { id: string
         </div>
       </header>
 
-      <section className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-        <div className="stat">
-          <div className="stat-label">Lifetime giving</div>
-          <div className="stat-value text-brand-700">{fmtUsd(pivot.grand)}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Last gift</div>
-          <div className="stat-value">{lastGift ?? "—"}</div>
-        </div>
-      </section>
-
       <section className="mb-8">
-        <h2 className="section-eyebrow">Year × fund</h2>
-        {pivot.years.length === 0 ? (
-          <div className="card p-8 text-center text-sm text-stone-500">No gifts recorded yet.</div>
-        ) : (
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-stone-50/60 border-b border-stone-200">
-                  <tr className="text-[11px] uppercase tracking-wider text-stone-500">
-                    <th className="sticky left-0 bg-stone-50/60 text-left px-4 py-3 font-medium">Year</th>
-                    {pivot.funds.map((f) => (
-                      <th key={f} className="text-right px-4 py-3 font-medium whitespace-nowrap">{f}</th>
-                    ))}
-                    <th className="text-right px-4 py-3 font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {pivot.years.map((y) => (
-                    <tr key={y} className="hover:bg-stone-50/60 transition-colors">
-                      <td className="sticky left-0 bg-white px-4 py-3 font-medium text-stone-900">{y}</td>
-                      {pivot.funds.map((f) => {
-                        const v = pivot.cells[y]?.[f];
-                        return (
-                          <td key={f} className="px-4 py-3 text-right tabular-nums text-stone-700">
-                            {v ? fmtUsd(v) : "—"}
-                          </td>
-                        );
-                      })}
-                      <td className="px-4 py-3 text-right tabular-nums font-medium text-brand-700">
-                        {fmtUsd(pivot.rowTotals[y] ?? 0)}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="bg-stone-50/40 border-t border-stone-200">
-                    <td className="sticky left-0 bg-stone-50/40 px-4 py-3 font-medium text-stone-900">Total</td>
-                    {pivot.funds.map((f) => (
-                      <td key={f} className="px-4 py-3 text-right tabular-nums font-medium text-stone-900">
-                        {fmtUsd(pivot.colTotals[f] ?? 0)}
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-right tabular-nums font-medium text-brand-700">
-                      {fmtUsd(pivot.grand)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <h2 className="section-eyebrow">Pivot</h2>
+        <DonorPivot gifts={gifts} />
       </section>
 
       <section>
