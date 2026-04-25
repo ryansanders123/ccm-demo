@@ -51,14 +51,6 @@ export type DonorDetail = {
 
 const PAGE = 1000;
 
-async function fetchAll<T>(
-  build: () => ReturnType<ReturnType<typeof createSupabaseServerClient>["from"]>["select"]
-): Promise<T[]> {
-  // Helper kept simple; callers do their own pagination.
-  return [] as T[];
-}
-void fetchAll;
-
 export async function getDonorList(): Promise<DonorListRow[]> {
   const supabase = createSupabaseServerClient();
 
