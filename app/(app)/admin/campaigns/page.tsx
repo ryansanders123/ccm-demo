@@ -43,10 +43,8 @@ export default async function CampaignsPage() {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-          Campaigns
-        </h1>
-        <p className="mt-2 text-stone-600">
+        <h1 className="page-title">Campaigns</h1>
+        <p className="page-subtitle">
           The big-picture goal money is being raised toward (e.g. &ldquo;FY26
           Annual Fund&rdquo;, &ldquo;Capital Drive&rdquo;).
         </p>

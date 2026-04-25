@@ -13,10 +13,8 @@ export default async function ExportsPage() {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-          Bulk exports
-        </h1>
-        <p className="mt-2 text-stone-600 max-w-2xl">
+        <h1 className="page-title">Bulk exports</h1>
+        <p className="page-subtitle max-w-2xl">
           Download the year&rsquo;s donor data as CSV — feed it into mail-merge,
           a spreadsheet, or your statement-generation tool. Voided gifts are
           always excluded.

@@ -14,7 +14,7 @@ function LoginContent() {
   const [magicState, setMagicState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [magicError, setMagicError] = useState<string | null>(null);
 
-  async function signIn(provider: "google" | "azure") {
+  async function signIn(provider: "google") {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signInWithOAuth({
       provider,
@@ -90,13 +90,6 @@ function LoginContent() {
             >
               <GoogleIcon />
               Continue with Google
-            </button>
-            <button
-              onClick={() => signIn("azure")}
-              className="btn btn-secondary w-full py-2.5 text-[15px]"
-            >
-              <MicrosoftIcon />
-              Continue with Microsoft
             </button>
           </div>
 
@@ -175,13 +168,3 @@ function GoogleIcon() {
   );
 }
 
-function MicrosoftIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <rect x="0" y="0" width="8" height="8" fill="#F25022" />
-      <rect x="10" y="0" width="8" height="8" fill="#7FBA00" />
-      <rect x="0" y="10" width="8" height="8" fill="#00A4EF" />
-      <rect x="10" y="10" width="8" height="8" fill="#FFB900" />
-    </svg>
-  );
-}

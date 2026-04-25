@@ -142,10 +142,8 @@ export default async function ReportPage({
     <div className="animate-fade-in">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-            Monthly report
-          </h1>
-          <p className="mt-2 text-stone-600">
+          <h1 className="page-title">Monthly report</h1>
+          <p className="page-subtitle">
             Donations received in {monthLabel}.
           </p>
         </div>

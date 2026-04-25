@@ -11,10 +11,8 @@ export default async function DonorsPage() {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-          Donors
-        </h1>
-        <p className="mt-2 text-stone-600">
+        <h1 className="page-title">Donors</h1>
+        <p className="page-subtitle">
           Browse all donors and review their giving history. Voided gifts are excluded from totals.
         </p>
       </header>

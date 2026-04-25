@@ -77,11 +77,11 @@ export default async function Home() {
   return (
     <div className="animate-fade-in">
       {/* Hero */}
-      <section className="mb-10 md:mb-12">
-        <div className="flex items-center gap-2 mb-4">
+      <section className="mb-8 md:mb-10">
+        <div className="flex items-center gap-2 mb-3">
           <span className="chip-brand">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
-            Signed in as {user?.email}
+            {user?.email}
           </span>
           {isAdmin && (
             <span className="chip-neutral">
@@ -90,10 +90,10 @@ export default async function Home() {
             </span>
           )}
         </div>
-        <h1 className="font-serif text-4xl md:text-5xl font-medium text-stone-900 tracking-tight leading-[1.1] text-balance">
+        <h1 className="page-title text-balance">
           Welcome to <span className="text-brand-700">{ORG}</span>
         </h1>
-        <p className="mt-4 text-lg text-stone-600 max-w-2xl text-pretty">
+        <p className="page-subtitle text-base md:text-lg max-w-2xl">
           Record contributions, track fund performance, and prepare donor tax
           statements — all in one place.
         </p>
@@ -101,24 +101,22 @@ export default async function Home() {
 
       {/* Quick actions */}
       <section className="mb-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
-          Quick actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="section-eyebrow">Quick actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {actions.map((a) => (
-            <Link key={a.href} href={a.href} className="card-interactive p-6 block group">
+            <Link key={a.href} href={a.href} className="card-interactive p-5 md:p-6 block group">
               <div
-                className={`h-11 w-11 rounded-xl bg-gradient-to-br ring-1 flex items-center justify-center mb-4 ${a.accent}`}
+                className={`h-10 w-10 rounded-xl bg-gradient-to-br ring-1 flex items-center justify-center mb-4 ${a.accent}`}
               >
                 {a.icon}
               </div>
-              <div className="font-serif text-xl text-stone-900 mb-1 group-hover:text-brand-700 transition-colors">
+              <div className="font-serif text-lg md:text-xl text-stone-900 leading-snug group-hover:text-brand-700 transition-colors">
                 {a.title}
               </div>
-              <div className="text-sm text-stone-600 text-pretty">
+              <div className="text-sm text-stone-600 text-pretty mt-1">
                 {a.description}
               </div>
-              <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+              <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
                 Open
                 <ArrowRightIcon />
               </div>
@@ -129,18 +127,14 @@ export default async function Home() {
 
       {/* Giving over time */}
       <section className="mb-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
-          Giving over time
-        </h2>
+        <h2 className="section-eyebrow">Giving over time</h2>
         <DonationsChart data={data} />
       </section>
 
       {isAdmin && (
         <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-4">
-            Administration
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h2 className="section-eyebrow">Administration</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {adminActions.map((a) => (
               <Link
                 key={a.href}

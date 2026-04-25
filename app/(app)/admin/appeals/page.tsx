@@ -35,10 +35,8 @@ export default async function AppealsPage() {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-          Appeals
-        </h1>
-        <p className="mt-2 text-stone-600">
+        <h1 className="page-title">Appeals</h1>
+        <p className="page-subtitle">
           The specific solicitation that produced the gift (e.g. &ldquo;Lent
           2026 Mailing&rdquo;, &ldquo;Giving Tuesday Email&rdquo;).
         </p>

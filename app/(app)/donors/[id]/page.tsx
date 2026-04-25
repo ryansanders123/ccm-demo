@@ -25,12 +25,10 @@ export default async function DonorDetailPage({ params }: { params: { id: string
     <div className="animate-fade-in">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href="/donors" className="text-sm text-stone-500 hover:text-brand-700">
+          <Link href="/donors" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-brand-700 transition-colors">
             ← All donors
           </Link>
-          <h1 className="mt-1 font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-            {donee.name}
-          </h1>
+          <h1 className="mt-2 page-title">{donee.name}</h1>
           <p className="mt-1 text-stone-600 text-sm">
             {[donee.email, donee.phone].filter(Boolean).join(" • ") || "No contact info on file"}
           </p>
@@ -48,31 +46,23 @@ export default async function DonorDetailPage({ params }: { params: { id: string
         </div>
       </header>
 
-      <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card p-6">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-2">Lifetime giving</div>
-          <div className="font-serif text-3xl md:text-4xl font-medium text-brand-700 tracking-tight tabular-nums">
-            {fmtUsd(pivot.grand)}
-          </div>
+      <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="stat">
+          <div className="stat-label">Lifetime giving</div>
+          <div className="stat-value text-brand-700">{fmtUsd(pivot.grand)}</div>
         </div>
-        <div className="card p-6">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-2"># Gifts</div>
-          <div className="font-serif text-3xl md:text-4xl font-medium text-stone-900 tabular-nums">
-            {gifts.length.toLocaleString()}
-          </div>
+        <div className="stat">
+          <div className="stat-label"># Gifts</div>
+          <div className="stat-value">{gifts.length.toLocaleString()}</div>
         </div>
-        <div className="card p-6">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-2">Last gift</div>
-          <div className="font-serif text-3xl md:text-4xl font-medium text-stone-900 tabular-nums">
-            {lastGift ?? "—"}
-          </div>
+        <div className="stat">
+          <div className="stat-label">Last gift</div>
+          <div className="stat-value">{lastGift ?? "—"}</div>
         </div>
       </section>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-3">
-          Year × fund
-        </h2>
+        <h2 className="section-eyebrow">Year × fund</h2>
         {pivot.years.length === 0 ? (
           <div className="card p-8 text-center text-sm text-stone-500">No gifts recorded yet.</div>
         ) : (
@@ -124,9 +114,7 @@ export default async function DonorDetailPage({ params }: { params: { id: string
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 mb-3">
-          History
-        </h2>
+        <h2 className="section-eyebrow">History</h2>
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -83,18 +83,18 @@ export function DonorListClient({ donors }: { donors: DonorListRow[] }) {
         </div>
       </form>
 
-      <section className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card p-5">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Donors shown</div>
-          <div className="font-serif text-2xl text-stone-900 tabular-nums">{filtered.length.toLocaleString()}</div>
+      <section className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="stat">
+          <div className="stat-label">Donors shown</div>
+          <div className="stat-value">{filtered.length.toLocaleString()}</div>
         </div>
-        <div className="card p-5">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Lifetime giving</div>
-          <div className="font-serif text-2xl text-brand-700 tabular-nums">{fmtUsd(lifetimeShown)}</div>
+        <div className="stat">
+          <div className="stat-label">Lifetime giving</div>
+          <div className="stat-value text-brand-700">{fmtUsd(lifetimeShown)}</div>
         </div>
-        <div className="card p-5">
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Avg gift size</div>
-          <div className="font-serif text-2xl text-stone-900 tabular-nums">{fmtUsd(avgGift)}</div>
+        <div className="stat">
+          <div className="stat-label">Avg gift size</div>
+          <div className="stat-value">{fmtUsd(avgGift)}</div>
         </div>
       </section>
 

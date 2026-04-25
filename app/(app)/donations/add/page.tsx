@@ -11,10 +11,8 @@ export default async function AddDonationPage() {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight">
-          Add donation
-        </h1>
-        <p className="mt-2 text-stone-600">
+        <h1 className="page-title">Add donation</h1>
+        <p className="page-subtitle">
           Record a new contribution. Required fields are marked.
         </p>
       </header>
