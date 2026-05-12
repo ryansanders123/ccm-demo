@@ -1,4 +1,5 @@
 import { hasFeature, getActiveOrg } from "@/lib/org-context";
+import { currentAppUser } from "@/lib/auth";
 import { getDupCandidatesForDonee } from "@/lib/dedup";
 import { DedupPairCard } from "@/components/DedupPairCard";
 
@@ -8,6 +9,8 @@ import { DedupPairCard } from "@/components/DedupPairCard";
 // the admin queue, so action buttons + merge modal behave identically.
 export async function DonorDupPanel({ doneeId }: { doneeId: string }) {
   const org = await getActiveOrg();
+  const user = await currentAppUser();
+  if (user?.role !== "admin") return null;
   if (!hasFeature(org, "dedup")) return null;
 
   const pairs = await getDupCandidatesForDonee(doneeId, { limit: 3, minScore: 0.4 });

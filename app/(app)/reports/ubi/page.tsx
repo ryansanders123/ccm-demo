@@ -1,4 +1,4 @@
-import { pdsQuery } from "@/lib/pds-db";
+import { getUbiRows } from "@/lib/pds-db";
 import { Sheet } from "@/components/reports/Sheet";
 import { DashboardChrome } from "@/components/reports/DashboardChrome";
 import { ZipMap } from "./ZipMap";
@@ -13,14 +13,20 @@ const TABS = [
 type ZipRow = { zip: string; avg_ubi: number; households: number };
 
 export default async function UBIPage() {
-  const rows = await pdsQuery<ZipRow>(
-    `SELECT zip,
-            (SUM(ubi::bigint * households::bigint))::float / NULLIF(SUM(households)::float, 0) AS avg_ubi,
-            SUM(households)::bigint AS households
-     FROM pds.accudata_ubi
-     WHERE state = 'AR'
-     GROUP BY zip`
-  );
+  const sourceRows = await getUbiRows();
+  const byZip = new Map<string, { weighted: number; households: number }>();
+  for (const row of sourceRows) {
+    if (row.state !== "AR" || !row.zip) continue;
+    const current = byZip.get(row.zip) ?? { weighted: 0, households: 0 };
+    current.weighted += Number(row.ubi) * Number(row.households);
+    current.households += Number(row.households);
+    byZip.set(row.zip, current);
+  }
+  const rows: ZipRow[] = Array.from(byZip.entries()).map(([zip, value]) => ({
+    zip,
+    avg_ubi: value.households ? value.weighted / value.households : 0,
+    households: value.households,
+  }));
 
   return (
     <DashboardChrome

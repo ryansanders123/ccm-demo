@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requirePlatformAdmin } from "@/lib/auth";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
   addUserToOrg,
@@ -25,9 +25,10 @@ const FEATURE_KEYS: { key: string; label: string }[] = [
 export default async function OrganizationDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requirePlatformAdmin();
+  const { id } = await params;
   const supabase = createSupabaseServiceClient();
 
   const { data: org } = await supabase
@@ -35,19 +36,19 @@ export default async function OrganizationDetailPage({
     .select(
       "id, slug, name, logo_url, favicon_url, primary_color, tagline, support_email, mailing_address, tax_statement_text, features",
     )
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!org) notFound();
 
   const { data: members } = await supabase
     .from("user_organizations")
     .select("user_id, role, users!inner(id, email, role, first_login_at)")
-    .eq("organization_id", params.id);
+    .eq("organization_id", id);
 
   async function saveBranding(fd: FormData) {
     "use server";
     await updateOrganizationBranding({
-      id: params.id,
+      id,
       name: String(fd.get("name") ?? ""),
       tagline: emptyToNull(fd.get("tagline")),
       logo_url: emptyToNull(fd.get("logo_url")),
@@ -65,14 +66,14 @@ export default async function OrganizationDetailPage({
     for (const { key } of FEATURE_KEYS) {
       features[key] = fd.get(`feature_${key}`) === "on";
     }
-    await updateOrganizationFeatures({ id: params.id, features });
+    await updateOrganizationFeatures({ id, features });
   }
 
   async function addMember(fd: FormData) {
     "use server";
     await addUserToOrg({
       email: String(fd.get("email") ?? ""),
-      orgId: params.id,
+      orgId: id,
       role: (String(fd.get("role") ?? "member") as "admin" | "member"),
     });
   }
@@ -81,7 +82,7 @@ export default async function OrganizationDetailPage({
     "use server";
     await removeUserFromOrg({
       userId: String(fd.get("user_id") ?? ""),
-      orgId: params.id,
+      orgId: id,
     });
   }
 
@@ -200,7 +201,7 @@ export default async function OrganizationDetailPage({
                   | undefined;
                 if (!u) return null;
                 return (
-                  <tr key={`${m.user_id}-${params.id}`}>
+                  <tr key={`${m.user_id}-${id}`}>
                     <td className="px-3 py-2 font-medium text-stone-800">{u.email}</td>
                     <td className="px-3 py-2 text-stone-600">{m.role}</td>
                     <td className="px-3 py-2 text-stone-600">

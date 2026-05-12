@@ -6,6 +6,15 @@ function mockSvc(state: { users: any[] }) {
     from: (t: string) => ({
       select: (_a?: any, o?: any) => {
         if (o?.head && o?.count) return { count: state.users.length };
+        if (t === "organizations") {
+          return {
+            order: () => ({
+              limit: () => ({
+                single: async () => ({ data: { id: "org-1" }, error: null }),
+              }),
+            }),
+          };
+        }
         return {
           eq: (_c: string, v: string) => ({
             maybeSingle: async () => ({
@@ -14,7 +23,20 @@ function mockSvc(state: { users: any[] }) {
           }),
         };
       },
-      insert: async (row: any) => { state.users.push({ ...row, id: "new" }); return { data: null, error: null }; },
+      insert: (row: any) => {
+        if (t === "user_organizations") {
+          return { data: null, error: null };
+        }
+        state.users.push({ ...row, id: "new" });
+        return {
+          data: null,
+          error: null,
+          select: () => ({
+            single: async () => ({ data: { id: "new" }, error: null }),
+          }),
+        };
+      },
+      upsert: async () => ({ data: null, error: null }),
       update: (patch: any) => ({
         eq: async (_c: string, id: string) => {
           const u = state.users.find(u => u.id === id);
@@ -41,6 +63,8 @@ describe("runCallbackGate", () => {
     const r = await runCallbackGate({ id: "a", email: "x@y.com", email_verified: true }, svc);
     expect(r).toEqual({ kind: "ok" });
     expect(state.users[0].role).toBe("admin");
+    expect(state.users[0].platform_admin).toBe(true);
+    expect(state.users[0].organization_id).toBe("org-1");
     expect(state.users[0].auth_user_id).toBe("a");
   });
 

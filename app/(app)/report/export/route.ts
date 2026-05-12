@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { assertFeature } from "@/lib/org-context";
 import { monthRange } from "@/lib/reports";
 import { csvRow, CSV_HEADERS } from "@/lib/csv";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   await requireUser();
+  await assertFeature("reports");
   const url = new URL(req.url);
   const [y, m] = (url.searchParams.get("month") ?? new Date().toISOString().slice(0, 7)).split("-").map(Number);
   const includeVoided = url.searchParams.get("voided") === "1";

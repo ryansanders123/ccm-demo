@@ -101,3 +101,10 @@ export async function requireFeature(name: keyof Features): Promise<void> {
   const org = await getActiveOrg();
   if (!hasFeature(org, name)) redirect("/");
 }
+
+export async function assertFeature(name: keyof Features): Promise<void> {
+  const org = await getActiveOrg();
+  if (!hasFeature(org, name)) {
+    throw new Error(`Feature disabled: ${name}`);
+  }
+}

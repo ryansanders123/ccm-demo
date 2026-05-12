@@ -2,7 +2,8 @@ export function csvRow(cols: (string | number | null | undefined)[]): string {
   return cols
     .map((c) => {
       if (c == null) return "";
-      const s = String(c);
+      let s = String(c);
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
       if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
       return s;
     })

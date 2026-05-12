@@ -43,12 +43,53 @@ async function main() {
   await client.connect();
 
   try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.schema_migrations (
+        filename text PRIMARY KEY,
+        applied_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    const { rows: trackedRows } = await client.query(
+      'SELECT filename FROM public.schema_migrations',
+    );
+    const tracked = new Set(trackedRows.map((row) => row.filename));
+
+    if (tracked.size === 0) {
+      const { rows: existingSchema } = await client.query(
+        "SELECT to_regclass('public.organizations') AS organizations",
+      );
+      if (existingSchema[0]?.organizations) {
+        if (process.env.BASELINE_EXISTING !== '1') {
+          throw new Error(
+            'Existing schema has no migration history. Re-run with BASELINE_EXISTING=1 only after confirming the DB already has the listed migrations.',
+          );
+        }
+        for (const file of files) {
+          await client.query(
+            'INSERT INTO public.schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING',
+            [file],
+          );
+          tracked.add(file);
+        }
+        console.log('Existing schema detected; baselined current migration files.');
+      }
+    }
+
     for (const file of files) {
+      if (tracked.has(file)) {
+        console.log(`Skipping ${file} ... already applied`);
+        continue;
+      }
       const sql = await readFile(join(MIGRATIONS_DIR, file), 'utf8');
       process.stdout.write(`Applying ${file} ... `);
       try {
         await client.query('BEGIN');
         await client.query(sql);
+        await client.query(
+          'INSERT INTO public.schema_migrations (filename) VALUES ($1)',
+          [file],
+        );
         await client.query('COMMIT');
         console.log('OK');
       } catch (err) {

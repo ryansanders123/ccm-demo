@@ -5,7 +5,8 @@ import { voidDonation } from "@/app/(app)/donations/actions";
 import { currentAppUser } from "@/lib/auth";
 import { VoidForm } from "./VoidForm";
 
-export default async function VoidPage({ params }: { params: { id: string } }) {
+export default async function VoidPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await currentAppUser();
   const isAdmin = user?.role === "admin";
 
@@ -44,7 +45,7 @@ export default async function VoidPage({ params }: { params: { id: string } }) {
   const { data: d } = await supabase
     .from("donations")
     .select("id,amount,date_received,type,donees(name),funds(name),voided_at")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!d) {
@@ -72,7 +73,7 @@ export default async function VoidPage({ params }: { params: { id: string } }) {
     "use server";
     const reason = String(formData.get("reason") ?? "").trim();
     const confirm = String(formData.get("confirm") ?? "").trim();
-    await voidDonation({ id: params.id, reason, confirm });
+    await voidDonation({ id, reason, confirm });
     redirect("/report");
   }
 

@@ -45,14 +45,38 @@ export async function runCallbackGate(
     .select("id", { count: "exact", head: true });
 
   if ((count ?? 0) === 0) {
-    await svc.from("users").insert({
+    const { data: org } = await svc
+      .from("organizations")
+      .select("id")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!org?.id) {
+      return { kind: "redirect", to: "/login?error=no-organization" };
+    }
+
+    const { data: inserted } = await svc.from("users").insert({
       auth_user_id: authUser.id,
       email: authUser.email.toLowerCase(),
       role: "admin",
+      platform_admin: true,
+      organization_id: org.id,
       invited_at: now,
       first_login_at: now,
       last_login_at: now,
-    });
+    }).select("id").single();
+
+    if (inserted?.id) {
+      await svc.from("user_organizations").upsert(
+        {
+          user_id: inserted.id,
+          organization_id: org.id,
+          role: "admin",
+        },
+        { onConflict: "user_id,organization_id" },
+      );
+    }
     return { kind: "ok" };
   }
 

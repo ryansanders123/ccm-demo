@@ -22,15 +22,16 @@ const nameOf = (rel: { name: string } | { name: string }[] | null | undefined): 
   return rel.name ?? "";
 };
 
-export default async function PrintView({ params }: { params: { doneeId: string; year: string } }) {
-  const year = parseInt(params.year, 10);
+export default async function PrintView({ params }: { params: Promise<{ doneeId: string; year: string }> }) {
+  const { doneeId, year: yearParam } = await params;
+  const year = parseInt(yearParam, 10);
   const supabase = createSupabaseServerClient();
   const [org, doneeRes, rowsRes] = await Promise.all([
     getActiveOrg(),
-    supabase.from("donees").select("*").eq("id", params.doneeId).single(),
+    supabase.from("donees").select("*").eq("id", doneeId).single(),
     supabase.from("donations")
       .select("date_received,type,amount,funds(name)")
-      .eq("donee_id", params.doneeId)
+      .eq("donee_id", doneeId)
       .is("voided_at", null)
       .gte("date_received", `${year}-01-01`).lt("date_received", `${year + 1}-01-01`)
       .order("date_received"),

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { currentAppUser } from "@/lib/auth";
-import { getActiveOrg } from "@/lib/org-context";
+import { getActiveOrg, hasFeature } from "@/lib/org-context";
 import { getMonthlyTotals } from "@/lib/dashboard";
 import { DonationsChart } from "@/components/DonationsChart";
 
@@ -20,6 +20,7 @@ export default async function Home() {
       description: "Record a new cash, check, or online gift.",
       icon: <PlusIcon />,
       accent: "from-brand-50 to-brand-100 text-brand-700 ring-brand-200",
+      feature: "donations" as const,
     },
     {
       href: "/donors",
@@ -27,6 +28,7 @@ export default async function Home() {
       description: "Search donors and review their giving history.",
       icon: <UsersIcon />,
       accent: "from-sky-50 to-sky-100 text-sky-800 ring-sky-200",
+      feature: "donors" as const,
     },
     {
       href: "/report",
@@ -34,6 +36,7 @@ export default async function Home() {
       description: "Review totals by fund, type, and donor.",
       icon: <ChartIcon />,
       accent: "from-amber-50 to-amber-100 text-amber-800 ring-amber-200",
+      feature: "reports" as const,
     },
     {
       href: "/tax-summary",
@@ -41,6 +44,7 @@ export default async function Home() {
       description: "Generate annual giving statements for donors.",
       icon: <ReceiptIcon />,
       accent: "from-emerald-50 to-emerald-100 text-emerald-800 ring-emerald-200",
+      feature: "tax_summary" as const,
     },
   ];
 
@@ -50,24 +54,28 @@ export default async function Home() {
       title: "Manage Funds",
       description: "Add and archive designated funds.",
       icon: <FolderIcon />,
+      feature: "funds" as const,
     },
     {
       href: "/admin/campaigns",
       title: "Manage Campaigns",
       description: "Set up giving drives with goals and dates.",
       icon: <FlagIcon />,
+      feature: "campaigns" as const,
     },
     {
       href: "/admin/appeals",
       title: "Manage Appeals",
       description: "Track which solicitation produced each gift.",
       icon: <MegaphoneIcon />,
+      feature: "appeals" as const,
     },
     {
       href: "/admin/exports",
       title: "Bulk Exports",
       description: "Download all-donor tax data as CSV for the year.",
       icon: <DownloadIcon />,
+      feature: "exports" as const,
     },
     {
       href: "/admin/users",
@@ -106,7 +114,7 @@ export default async function Home() {
       <section className="mb-10">
         <h2 className="section-eyebrow">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {actions.map((a) => (
+              {actions.filter((a) => hasFeature(org, a.feature)).map((a) => (
             <Link key={a.href} href={a.href} className="card-interactive p-5 md:p-6 block group">
               <div
                 className={`h-10 w-10 rounded-xl bg-gradient-to-br ring-1 flex items-center justify-center mb-4 ${a.accent}`}
@@ -138,7 +146,7 @@ export default async function Home() {
         <section>
           <h2 className="section-eyebrow">Administration</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {adminActions.map((a) => (
+            {adminActions.filter((a) => !a.feature || hasFeature(org, a.feature)).map((a) => (
               <Link
                 key={a.href}
                 href={a.href}

@@ -11,4 +11,9 @@ describe("csvRow", () => {
   it("preserves empty fields", () => {
     expect(csvRow(["", "x"])).toBe(",x");
   });
+  it("neutralizes spreadsheet formulas", () => {
+    expect(csvRow(["=HYPERLINK(\"http://bad\")", "+cmd", "-2", "@x"])).toBe(
+      "\"'=HYPERLINK(\"\"http://bad\"\")\",'+cmd,'-2,'@x",
+    );
+  });
 });

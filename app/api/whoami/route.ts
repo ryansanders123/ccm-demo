@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const cookieStore = cookies();
+  await requireAdmin();
+  const cookieStore = cookies() as unknown as {
+    getAll(): Array<{ name: string }>;
+  };
   const cookieNames = cookieStore.getAll().map((c) => c.name);
 
   const supabase = createSupabaseServerClient();

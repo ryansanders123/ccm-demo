@@ -1,12 +1,23 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DonationForm } from "@/components/DonationForm";
+import { getActiveOrg, hasFeature } from "@/lib/org-context";
 
 export default async function AddDonationPage() {
   const supabase = createSupabaseServerClient();
+  const org = await getActiveOrg();
+  const showFunds = hasFeature(org, "funds");
+  const showCampaigns = hasFeature(org, "campaigns");
+  const showAppeals = hasFeature(org, "appeals");
   const [{ data: funds }, { data: campaigns }, { data: appeals }] = await Promise.all([
-    supabase.from("funds").select("id,name").is("archived_at", null).order("name"),
-    supabase.from("campaigns").select("id,name").is("archived_at", null).order("name"),
-    supabase.from("appeals").select("id,name").is("archived_at", null).order("name"),
+    showFunds
+      ? supabase.from("funds").select("id,name").is("archived_at", null).order("name")
+      : Promise.resolve({ data: [] }),
+    showCampaigns
+      ? supabase.from("campaigns").select("id,name").is("archived_at", null).order("name")
+      : Promise.resolve({ data: [] }),
+    showAppeals
+      ? supabase.from("appeals").select("id,name").is("archived_at", null).order("name")
+      : Promise.resolve({ data: [] }),
   ]);
   return (
     <div className="animate-fade-in">
@@ -21,6 +32,9 @@ export default async function AddDonationPage() {
           funds={funds ?? []}
           campaigns={campaigns ?? []}
           appeals={appeals ?? []}
+          showFunds={showFunds}
+          showCampaigns={showCampaigns}
+          showAppeals={showAppeals}
         />
       </div>
     </div>

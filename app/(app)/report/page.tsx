@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { summarize, monthRange } from "@/lib/reports";
 import { currentAppUser } from "@/lib/auth";
+import { getActiveOrg, hasFeature } from "@/lib/org-context";
 
 const PAGE_SIZE = 25;
 
@@ -13,31 +14,38 @@ function parseMonth(s?: string) {
 export default async function ReportPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     month?: string;
     page?: string;
     voided?: string;
     fund?: string;
     campaign?: string;
     appeal?: string;
-  };
+  }>;
 }) {
-  const { year, month } = parseMonth(searchParams.month);
+  const sp = await searchParams;
+  const { year, month } = parseMonth(sp.month);
   const { start, end } = monthRange(year, month);
-  const includeVoided = searchParams.voided === "1";
-  const fundFilter = searchParams.fund ?? "";
-  const campaignFilter = searchParams.campaign ?? "";
-  const appealFilter = searchParams.appeal ?? "";
-  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+  const includeVoided = sp.voided === "1";
+  let fundFilter = sp.fund ?? "";
+  let campaignFilter = sp.campaign ?? "";
+  let appealFilter = sp.appeal ?? "";
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
-  const user = await currentAppUser();
+  const [user, org] = await Promise.all([currentAppUser(), getActiveOrg()]);
   const isAdmin = user?.role === "admin";
+  const showFunds = hasFeature(org, "funds");
+  const showCampaigns = hasFeature(org, "campaigns");
+  const showAppeals = hasFeature(org, "appeals");
+  if (!showFunds) fundFilter = "";
+  if (!showCampaigns) campaignFilter = "";
+  if (!showAppeals) appealFilter = "";
   const supabase = createSupabaseServerClient();
 
   const [{ data: fundsList }, { data: campaignsList }, { data: appealsList }] = await Promise.all([
-    supabase.from("funds").select("id,name").order("name"),
-    supabase.from("campaigns").select("id,name").order("name"),
-    supabase.from("appeals").select("id,name").order("name"),
+    showFunds ? supabase.from("funds").select("id,name").order("name") : Promise.resolve({ data: [] }),
+    showCampaigns ? supabase.from("campaigns").select("id,name").order("name") : Promise.resolve({ data: [] }),
+    showAppeals ? supabase.from("appeals").select("id,name").order("name") : Promise.resolve({ data: [] }),
   ]);
 
   let q = supabase
@@ -162,39 +170,45 @@ export default async function ReportPage({
             className="input w-44"
           />
         </div>
-        <div>
-          <label htmlFor="fund" className="label">
-            Fund
-          </label>
-          <select id="fund" name="fund" defaultValue={fundFilter} className="input w-44">
-            <option value="">All funds</option>
-            {(fundsList ?? []).map((f: { id: string; name: string }) => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="campaign" className="label">
-            Campaign
-          </label>
-          <select id="campaign" name="campaign" defaultValue={campaignFilter} className="input w-44">
-            <option value="">All campaigns</option>
-            {(campaignsList ?? []).map((c: { id: string; name: string }) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="appeal" className="label">
-            Appeal
-          </label>
-          <select id="appeal" name="appeal" defaultValue={appealFilter} className="input w-44">
-            <option value="">All appeals</option>
-            {(appealsList ?? []).map((a: { id: string; name: string }) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-        </div>
+        {showFunds && (
+          <div>
+            <label htmlFor="fund" className="label">
+              Fund
+            </label>
+            <select id="fund" name="fund" defaultValue={fundFilter} className="input w-44">
+              <option value="">All funds</option>
+              {(fundsList ?? []).map((f: { id: string; name: string }) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {showCampaigns && (
+          <div>
+            <label htmlFor="campaign" className="label">
+              Campaign
+            </label>
+            <select id="campaign" name="campaign" defaultValue={campaignFilter} className="input w-44">
+              <option value="">All campaigns</option>
+              {(campaignsList ?? []).map((c: { id: string; name: string }) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {showAppeals && (
+          <div>
+            <label htmlFor="appeal" className="label">
+              Appeal
+            </label>
+            <select id="appeal" name="appeal" defaultValue={appealFilter} className="input w-44">
+              <option value="">All appeals</option>
+              {(appealsList ?? []).map((a: { id: string; name: string }) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <label className="inline-flex items-center gap-2 text-sm text-stone-700 h-10 px-1">
           <input
             type="checkbox"

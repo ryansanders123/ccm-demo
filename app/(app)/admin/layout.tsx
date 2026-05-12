@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const activeOrg = await getActiveOrg();
   return (
     <>
-      <AdminSubNav features={activeOrg?.features ?? {}} />
+      <AdminSubNav features={activeOrg?.features ?? {}} platformAdmin={u.platform_admin} />
       {children}
     </>
   );

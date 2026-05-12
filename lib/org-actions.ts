@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireUser, requireAdmin } from "@/lib/auth";
+import { requireUser, requireAdmin, requirePlatformAdmin } from "@/lib/auth";
 
 // Switch the calling user's active org. The new org must be one the
 // user has a public.user_organizations row for. Updates
@@ -32,7 +32,7 @@ export async function createOrganization(input: {
   mailing_address?: string;
   tax_statement_text?: string;
 }): Promise<{ id: string }> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const slug = input.slug.toLowerCase().trim();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
@@ -80,7 +80,7 @@ export async function updateOrganizationBranding(input: {
   mailing_address: string | null;
   tax_statement_text: string | null;
 }): Promise<void> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("organizations")
@@ -104,7 +104,7 @@ export async function updateOrganizationFeatures(input: {
   id: string;
   features: Record<string, boolean>;
 }): Promise<void> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("organizations")
@@ -122,14 +122,14 @@ export async function addUserToOrg(input: {
   orgId: string;
   role?: "admin" | "member";
 }): Promise<void> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const email = input.email.toLowerCase().trim();
   const role = input.role ?? "member";
 
   const { data: user, error: uErr } = await supabase
     .from("users")
-    .select("id")
+    .select("id, removed_at")
     .eq("email", email)
     .maybeSingle();
   if (uErr) throw new Error(`addUserToOrg: lookup user: ${uErr.message}`);
@@ -142,6 +142,9 @@ export async function addUserToOrg(input: {
       { onConflict: "user_id,organization_id" },
     );
   if (iErr) throw new Error(`addUserToOrg: ${iErr.message}`);
+  if (user.removed_at) {
+    await supabase.from("users").update({ removed_at: null }).eq("id", user.id);
+  }
   revalidatePath("/admin/organizations");
   revalidatePath("/admin/users");
 }
@@ -150,7 +153,7 @@ export async function removeUserFromOrg(input: {
   userId: string;
   orgId: string;
 }): Promise<void> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("user_organizations")
@@ -172,7 +175,7 @@ export async function onboardOrganization(input: {
   primary_color?: string;
   adminEmail: string;
 }): Promise<{ orgId: string }> {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const { id: orgId } = await createOrganization({
     slug: input.slug,

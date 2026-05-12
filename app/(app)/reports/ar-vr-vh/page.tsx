@@ -1,4 +1,4 @@
-import { pdsQuery } from "@/lib/pds-db";
+import { getArVrVhRows } from "@/lib/pds-db";
 import { fmtInt, fmtPct1 } from "@/lib/report-format";
 import { Sheet } from "@/components/reports/Sheet";
 import { DashboardChrome } from "@/components/reports/DashboardChrome";
@@ -13,7 +13,6 @@ const TABS = [
   { href: "/reports/ubi", label: "UBI" },
 ];
 
-type CountyRow = { county: string; records: number };
 type GenderAgeRow = { age_segment: string | null; gender: string | null; records: number };
 type RecencyRow = { voting_recency: string | null; records: number };
 type PartyRow = { flg_dem: string | null; flg_rep: string | null; records: number };
@@ -26,26 +25,29 @@ export default async function ARVRVHPage({
   const sp = await searchParams;
   const selectedCounty = sp.county?.toUpperCase() || null;
 
-  const where = selectedCounty ? "WHERE upper(county) = $1" : "";
-  const params: unknown[] = selectedCounty ? [selectedCounty] : [];
+  const rows = await getArVrVhRows();
+  const selectedRows = selectedCounty
+    ? rows.filter((row) => (row.county ?? "").toUpperCase() === selectedCounty)
+    : rows;
 
-  const [countyTotals, demoRows, recencyRows, partyRows] = await Promise.all([
-    pdsQuery<CountyRow>(
-      "SELECT county, SUM(records)::int AS records FROM pds.ar_vr_vh_summary GROUP BY county"
-    ),
-    pdsQuery<GenderAgeRow>(
-      `SELECT age_segment, gender, SUM(records)::int AS records FROM pds.ar_vr_vh_summary ${where} GROUP BY 1, 2`,
-      params
-    ),
-    pdsQuery<RecencyRow>(
-      `SELECT voting_recency, SUM(records)::int AS records FROM pds.ar_vr_vh_summary ${where} GROUP BY 1`,
-      params
-    ),
-    pdsQuery<PartyRow>(
-      `SELECT flg_dem, flg_rep, SUM(records)::int AS records FROM pds.ar_vr_vh_summary ${where} GROUP BY 1, 2`,
-      params
-    ),
-  ]);
+  const countyTotals = groupSum(rows, (row) => row.county ?? "")
+    .filter((row) => typeof row.county === "string")
+    .map((row) => ({ county: row.county as string, records: row.records }));
+  const demoRows = groupSum2(
+    selectedRows,
+    (row) => row.age_segment,
+    (row) => row.gender,
+    "age_segment",
+    "gender",
+  ) as GenderAgeRow[];
+  const recencyRows = groupSum(selectedRows, (row) => row.voting_recency, "voting_recency") as RecencyRow[];
+  const partyRows = groupSum2(
+    selectedRows,
+    (row) => row.flg_dem,
+    (row) => row.flg_rep,
+    "flg_dem",
+    "flg_rep",
+  ) as PartyRow[];
 
   return (
     <DashboardChrome
@@ -202,6 +204,48 @@ function PartyTable({ rows }: { rows: PartyRow[] }) {
       </tbody>
     </table>
   );
+}
+
+function groupSum<T>(
+  rows: Array<T & { records: number }>,
+  keyFn: (row: T) => string | null,
+  keyName = "county",
+) {
+  const groups = new Map<string, { value: string | null; records: number }>();
+  for (const row of rows) {
+    const value = keyFn(row);
+    const key = value ?? "";
+    const current = groups.get(key) ?? { value, records: 0 };
+    current.records += Number(row.records);
+    groups.set(key, current);
+  }
+  return Array.from(groups.values()).map((group) => ({
+    [keyName]: group.value,
+    records: group.records,
+  }));
+}
+
+function groupSum2<T>(
+  rows: Array<T & { records: number }>,
+  keyAFn: (row: T) => string | null,
+  keyBFn: (row: T) => string | null,
+  keyAName: string,
+  keyBName: string,
+) {
+  const groups = new Map<string, { a: string | null; b: string | null; records: number }>();
+  for (const row of rows) {
+    const a = keyAFn(row);
+    const b = keyBFn(row);
+    const key = `${a ?? ""}\u0000${b ?? ""}`;
+    const current = groups.get(key) ?? { a, b, records: 0 };
+    current.records += Number(row.records);
+    groups.set(key, current);
+  }
+  return Array.from(groups.values()).map((group) => ({
+    [keyAName]: group.a,
+    [keyBName]: group.b,
+    records: group.records,
+  }));
 }
 
 function uniqueOrdered<T>(arr: T[]): T[] {

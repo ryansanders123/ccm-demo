@@ -1,12 +1,14 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { assertFeature } from "@/lib/org-context";
 import { csvRow } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   await requireUser();
+  await assertFeature("tax_summary");
   const url = new URL(req.url);
   const doneeId = url.searchParams.get("donee");
   const year = parseInt(url.searchParams.get("year") ?? String(new Date().getFullYear()), 10);

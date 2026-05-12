@@ -4,7 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Features } from "@/lib/org-context";
 
-type Item = { href: string; label: string; feature?: keyof Features };
+type Item = {
+  href: string;
+  label: string;
+  feature?: keyof Features;
+  platformOnly?: boolean;
+};
 
 const ITEMS: Item[] = [
   { href: "/admin/funds", label: "Funds", feature: "funds" },
@@ -14,7 +19,7 @@ const ITEMS: Item[] = [
   { href: "/admin/dedup", label: "Dedup", feature: "dedup" },
   { href: "/admin/exports", label: "Exports", feature: "exports" },
   { href: "/admin/users", label: "Users" },
-  { href: "/admin/organizations", label: "Organizations" },
+  { href: "/admin/organizations", label: "Organizations", platformOnly: true },
 ];
 
 function enabled(features: Features, key: keyof Features | undefined): boolean {
@@ -22,12 +27,21 @@ function enabled(features: Features, key: keyof Features | undefined): boolean {
   return features[key] !== false;
 }
 
-export function AdminSubNav({ features }: { features: Features }) {
+export function AdminSubNav({
+  features,
+  platformAdmin,
+}: {
+  features: Features;
+  platformAdmin: boolean;
+}) {
   const pathname = usePathname();
   return (
     <div className="mb-6 -mt-2 border-b border-stone-200/70">
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-        {ITEMS.filter((it) => enabled(features, it.feature)).map((it) => {
+        {ITEMS
+          .filter((it) => enabled(features, it.feature))
+          .filter((it) => !it.platformOnly || platformAdmin)
+          .map((it) => {
           const active = pathname === it.href || pathname.startsWith(`${it.href}/`);
           return (
             <Link

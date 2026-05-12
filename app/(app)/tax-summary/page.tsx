@@ -31,13 +31,14 @@ const fmtUsd = (n: number) =>
 export default async function TaxSummaryPage({
   searchParams,
 }: {
-  searchParams: { donee?: string; year?: string };
+  searchParams: Promise<{ donee?: string; year?: string }>;
 }) {
+  const sp = await searchParams;
   const year = parseInt(
-    searchParams.year ?? String(new Date().getFullYear()),
+    sp.year ?? String(new Date().getFullYear()),
     10
   );
-  const doneeId = searchParams.donee;
+  const doneeId = sp.donee;
 
   // No donee specified → bulk-first landing.
   if (!doneeId) {

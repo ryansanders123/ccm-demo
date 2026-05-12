@@ -2,11 +2,13 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin, requireUser } from "@/lib/auth";
+import { assertFeature } from "@/lib/org-context";
 import { doneeInputSchema, donationInputSchema, voidInputSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 
 export async function searchDonees(q: string) {
   await requireUser();
+  await assertFeature("donors");
   const trimmed = q.trim();
   if (trimmed.length < 2) return [];
   const safe = trimmed.replace(/[%_]/g, (m) => `\\${m}`); // escape LIKE wildcards
@@ -23,6 +25,7 @@ export async function searchDonees(q: string) {
 
 export async function createDonee(input: unknown) {
   const user = await requireUser();
+  await assertFeature("donors");
   const parsed = doneeInputSchema.parse(input);
   const supabase = createSupabaseServerClient();
   const payload = {
@@ -39,6 +42,7 @@ export async function createDonee(input: unknown) {
 
 export async function addDonation(input: unknown) {
   const user = await requireUser();
+  await assertFeature("donations");
   const parsed = donationInputSchema.parse(input);
   const supabase = createSupabaseServerClient();
 
@@ -47,18 +51,21 @@ export async function addDonation(input: unknown) {
   const appealId = parsed.appeal_id && parsed.appeal_id !== "" ? parsed.appeal_id : null;
 
   if (fundId) {
+    await assertFeature("funds");
     const { data: fund, error: fErr } = await supabase
       .from("funds").select("id, archived_at").eq("id", fundId).single();
     if (fErr || !fund) throw new Error("Fund not found");
     if (fund.archived_at) throw new Error("Fund is archived");
   }
   if (campaignId) {
+    await assertFeature("campaigns");
     const { data: c, error: cErr } = await supabase
       .from("campaigns").select("id, archived_at").eq("id", campaignId).single();
     if (cErr || !c) throw new Error("Campaign not found");
     if (c.archived_at) throw new Error("Campaign is archived");
   }
   if (appealId) {
+    await assertFeature("appeals");
     const { data: a, error: aErr } = await supabase
       .from("appeals").select("id, archived_at").eq("id", appealId).single();
     if (aErr || !a) throw new Error("Appeal not found");

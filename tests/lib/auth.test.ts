@@ -4,7 +4,7 @@ import { currentAppUser } from "@/lib/auth";
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: () => ({
     rpc: vi.fn().mockResolvedValue({
-      data: { id: "u1", email: "a@b.com", role: "admin", removed_at: null },
+      data: { id: "u1", email: "a@b.com", role: "admin", platform_admin: true, removed_at: null },
       error: null,
     }),
   }),

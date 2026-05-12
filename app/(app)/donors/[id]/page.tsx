@@ -10,9 +10,10 @@ export const dynamic = "force-dynamic";
 const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default async function DonorDetailPage({ params }: { params: { id: string } }) {
+export default async function DonorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
-  const detail = await getDonorDetail(params.id);
+  const { id } = await params;
+  const detail = await getDonorDetail(id);
   if (!detail) notFound();
 
   const { donee, gifts } = detail;

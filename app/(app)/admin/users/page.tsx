@@ -4,8 +4,8 @@ import { inviteUser, setUserRole, removeUser } from "@/app/(app)/admin/actions";
 export default async function UsersPage() {
   const supabase = createSupabaseServerClient();
   const { data: users } = await supabase
-    .from("users_with_providers")
-    .select("*")
+    .from("users")
+    .select("id,email,role,last_login_at,removed_at,auth_user_id,platform_admin")
     .order("invited_at", { ascending: false });
 
   async function invite(fd: FormData) {
@@ -63,7 +63,7 @@ export default async function UsersPage() {
                 <th className="text-left px-4 py-3 font-medium">Email</th>
                 <th className="text-left px-4 py-3 font-medium">Role</th>
                 <th className="text-left px-4 py-3 font-medium">Last login</th>
-                <th className="text-left px-4 py-3 font-medium">Providers</th>
+                <th className="text-left px-4 py-3 font-medium">Identity</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" aria-label="Actions"></th>
               </tr>
@@ -76,9 +76,9 @@ export default async function UsersPage() {
                     email: string;
                     role: string;
                     last_login_at: string | null;
-                    providers: string[] | null;
                     removed_at: string | null;
                     auth_user_id: string | null;
+                    platform_admin: boolean | null;
                   }
                 ) => {
                   const status = u.removed_at
@@ -111,7 +111,7 @@ export default async function UsersPage() {
                         {u.last_login_at ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-stone-600">
-                        {(u.providers ?? []).join(", ") || "—"}
+                        {u.auth_user_id ? "linked" : "—"}
                       </td>
                       <td className="px-4 py-3">
                         <span

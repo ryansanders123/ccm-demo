@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
+import { requirePlatformAdmin } from "@/lib/auth";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { onboardOrganization } from "@/lib/org-actions";
 
 export default async function OrganizationsPage() {
-  await requireAdmin();
+  await requirePlatformAdmin();
   const supabase = createSupabaseServiceClient();
   const { data: orgs } = await supabase
     .from("organizations")

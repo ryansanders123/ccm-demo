@@ -5,6 +5,7 @@ export type AppUser = {
   auth_user_id: string | null;
   email: string;
   role: "admin" | "user";
+  platform_admin: boolean;
   organization_id: string;
   invited_at: string;
   invited_by: string | null;
@@ -31,5 +32,11 @@ export async function requireUser(): Promise<AppUser> {
 export async function requireAdmin(): Promise<AppUser> {
   const u = await requireUser();
   if (u.role !== "admin") throw new Error("Forbidden");
+  return u;
+}
+
+export async function requirePlatformAdmin(): Promise<AppUser> {
+  const u = await requireAdmin();
+  if (!u.platform_admin) throw new Error("Forbidden");
   return u;
 }

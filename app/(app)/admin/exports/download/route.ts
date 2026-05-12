@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
+import { assertFeature } from "@/lib/org-context";
 import { csvRow } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ const nameOf = (rel: Joined): string => {
 };
 
 export async function GET(req: NextRequest) {
-  await requireUser();
+  await requireAdmin();
+  await assertFeature("exports");
   const url = new URL(req.url);
   const type = url.searchParams.get("type") === "detail" ? "detail" : "summary";
   const year = parseInt(url.searchParams.get("year") ?? String(new Date().getFullYear()), 10);
