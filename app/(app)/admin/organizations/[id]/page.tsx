@@ -12,6 +12,7 @@ const FEATURE_KEYS: { key: string; label: string }[] = [
   { key: "donations", label: "Donations" },
   { key: "donors", label: "Donors" },
   { key: "reports", label: "Reports" },
+  { key: "analysis", label: "Analysis" },
   { key: "funds", label: "Funds" },
   { key: "campaigns", label: "Campaigns" },
   { key: "appeals", label: "Appeals" },

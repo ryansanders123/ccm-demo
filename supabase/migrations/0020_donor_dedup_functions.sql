@@ -1,9 +1,33 @@
--- 0016_donor_dedup_functions.sql
--- Atomic merge + undo for donor dedup. Sits on top of 0015 (which
+-- 0020_donor_dedup_functions.sql
+-- Atomic merge + undo for donor dedup. Sits on top of 0019 (which
 -- created donee_dup_rejections + donee_merges + the candidate engine).
 --
 -- Both functions are SECURITY DEFINER but enforce that the caller is
 -- an admin of the active org via is_admin() + current_org_id().
+
+CREATE OR REPLACE FUNCTION public.donations_immutable_fields()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.organization_id  IS DISTINCT FROM OLD.organization_id  THEN RAISE EXCEPTION 'organization_id is immutable'; END IF;
+  IF NEW.import_batch_id  IS DISTINCT FROM OLD.import_batch_id  THEN RAISE EXCEPTION 'import_batch_id is immutable'; END IF;
+  IF NEW.source_name      IS DISTINCT FROM OLD.source_name      THEN RAISE EXCEPTION 'source_name is immutable'; END IF;
+  IF NEW.external_id      IS DISTINCT FROM OLD.external_id      THEN RAISE EXCEPTION 'external_id is immutable'; END IF;
+  IF NEW.content_hash     IS DISTINCT FROM OLD.content_hash     THEN RAISE EXCEPTION 'content_hash is immutable'; END IF;
+  IF NEW.donee_id         IS DISTINCT FROM OLD.donee_id
+     AND current_setting('app.allow_donation_donee_reassign', true) IS DISTINCT FROM 'on'
+     THEN RAISE EXCEPTION 'donee_id is immutable'; END IF;
+  IF NEW.fund_id          IS DISTINCT FROM OLD.fund_id          THEN RAISE EXCEPTION 'fund_id is immutable'; END IF;
+  IF NEW.type             IS DISTINCT FROM OLD.type             THEN RAISE EXCEPTION 'type is immutable'; END IF;
+  IF NEW.amount           IS DISTINCT FROM OLD.amount           THEN RAISE EXCEPTION 'amount is immutable'; END IF;
+  IF NEW.date_received    IS DISTINCT FROM OLD.date_received    THEN RAISE EXCEPTION 'date_received is immutable'; END IF;
+  IF NEW.check_number     IS DISTINCT FROM OLD.check_number     THEN RAISE EXCEPTION 'check_number is immutable'; END IF;
+  IF NEW.reference_id     IS DISTINCT FROM OLD.reference_id     THEN RAISE EXCEPTION 'reference_id is immutable'; END IF;
+  IF NEW.note             IS DISTINCT FROM OLD.note             THEN RAISE EXCEPTION 'note is immutable'; END IF;
+  IF NEW.created_by       IS DISTINCT FROM OLD.created_by       THEN RAISE EXCEPTION 'created_by is immutable'; END IF;
+  IF NEW.created_at       IS DISTINCT FROM OLD.created_at       THEN RAISE EXCEPTION 'created_at is immutable'; END IF;
+  RETURN NEW;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.do_merge_donees(
   p_winner_id uuid,
@@ -19,6 +43,7 @@ DECLARE
   v_winner_after  public.donees%ROWTYPE;
   v_loser_before  public.donees%ROWTYPE;
   v_loser_refs    jsonb;
+  v_refs_moved     jsonb;
   v_donations_moved uuid[];
   v_merged_by     uuid;
   v_merge_id      uuid;
@@ -50,6 +75,7 @@ BEGIN
   WHERE r.donee_id = p_loser_id;
 
   -- 1. Reassign donations and capture the moved ids for undo.
+  PERFORM set_config('app.allow_donation_donee_reassign', 'on', true);
   WITH moved AS (
     UPDATE public.donations
        SET donee_id = p_winner_id
@@ -68,8 +94,11 @@ BEGIN
       FROM public.donee_external_refs r
      WHERE r.donee_id = p_loser_id
     ON CONFLICT (organization_id, source_name, external_id) DO NOTHING
-    RETURNING 1
-  ) SELECT 1 FROM ins LIMIT 0;
+    RETURNING *
+  )
+  SELECT COALESCE(jsonb_agg(to_jsonb(ins) ORDER BY ins.source_name, ins.external_id), '[]'::jsonb)
+    INTO v_refs_moved
+  FROM ins;
   DELETE FROM public.donee_external_refs WHERE donee_id = p_loser_id;
 
   -- 3. Apply admin-chosen field values to the winner.
@@ -98,6 +127,7 @@ BEGIN
       'winner_after',        to_jsonb(v_winner_after),
       'loser_before',        to_jsonb(v_loser_before),
       'loser_external_refs', v_loser_refs,
+      'external_refs_moved', v_refs_moved,
       'donations_moved',     to_jsonb(v_donations_moved)
     ),
     cardinality(v_donations_moved),
@@ -129,6 +159,7 @@ DECLARE
   v_winner_before jsonb;
   v_donations_moved uuid[];
   v_loser_refs jsonb;
+  v_refs_moved jsonb;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'permission denied: admin role required';
@@ -151,6 +182,7 @@ BEGIN
   v_loser_before  := v_snap->'loser_before';
   v_winner_before := v_snap->'winner_before';
   v_loser_refs    := v_snap->'loser_external_refs';
+  v_refs_moved    := COALESCE(v_snap->'external_refs_moved', '[]'::jsonb);
   SELECT array_agg(value::uuid) INTO v_donations_moved
     FROM jsonb_array_elements_text(v_snap->'donations_moved');
   v_donations_moved := COALESCE(v_donations_moved, ARRAY[]::uuid[]);
@@ -175,7 +207,15 @@ BEGIN
     NULLIF(v_loser_before->>'created_by', '')::uuid
   );
 
-  -- 2. Re-insert the loser's external_refs.
+  -- 2. Move only the refs inserted by the merge back off the winner, then
+  --    re-insert the loser's external_refs.
+  DELETE FROM public.donee_external_refs r
+  USING jsonb_array_elements(v_refs_moved) AS ref
+  WHERE r.donee_id = v_winner_id
+    AND r.source_name = ref->>'source_name'
+    AND r.external_id = ref->>'external_id'
+    AND r.organization_id = (ref->>'organization_id')::uuid;
+
   INSERT INTO public.donee_external_refs (donee_id, source_name, external_id, organization_id)
   SELECT
     (ref->>'donee_id')::uuid,
@@ -187,6 +227,7 @@ BEGIN
 
   -- 3. Move donations back to the loser.
   IF cardinality(v_donations_moved) > 0 THEN
+    PERFORM set_config('app.allow_donation_donee_reassign', 'on', true);
     UPDATE public.donations
        SET donee_id = v_loser_id
      WHERE id = ANY(v_donations_moved);

@@ -1,4 +1,4 @@
--- 0015_donor_dedup.sql
+-- 0019_donor_dedup.sql
 -- Donor de-duplication: similarity-scored candidate pairs, persistent
 -- "not a duplicate" rejections, and a merge audit table that preserves
 -- every byte of the losing record for undo.
@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS donees_name_lower_trgm_idx
 
 -- Persistent "these are not duplicates" decisions. Canonicalized:
 -- always (lower_id, higher_id) so (A,B) and (B,A) hit the same row.
-CREATE TABLE public.donee_dup_rejections (
+CREATE TABLE IF NOT EXISTS public.donee_dup_rejections (
   organization_id uuid NOT NULL DEFAULT public.current_org_id()
                        REFERENCES public.organizations(id) ON DELETE CASCADE,
   donee_a_id      uuid NOT NULL REFERENCES public.donees(id) ON DELETE CASCADE,
@@ -24,13 +24,15 @@ CREATE TABLE public.donee_dup_rejections (
   CHECK (donee_a_id < donee_b_id)
 );
 
-CREATE INDEX donee_dup_rejections_lookup
+CREATE INDEX IF NOT EXISTS donee_dup_rejections_lookup
   ON public.donee_dup_rejections(donee_a_id, donee_b_id);
 
 ALTER TABLE public.donee_dup_rejections ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS donee_dup_rejections_select ON public.donee_dup_rejections;
 CREATE POLICY donee_dup_rejections_select ON public.donee_dup_rejections
   FOR SELECT TO authenticated
   USING (public.is_app_user() AND organization_id = public.current_org_id());
+DROP POLICY IF EXISTS donee_dup_rejections_admin_all ON public.donee_dup_rejections;
 CREATE POLICY donee_dup_rejections_admin_all ON public.donee_dup_rejections
   FOR ALL TO authenticated
   USING (public.is_admin() AND organization_id = public.current_org_id())
@@ -40,7 +42,7 @@ CREATE POLICY donee_dup_rejections_admin_all ON public.donee_dup_rejections
 -- restore the losing donor and revert the winner's field changes.
 -- winner_id is ON DELETE SET NULL so cascade-merges still show in
 -- history (with undo disabled in the UI when winner is gone).
-CREATE TABLE public.donee_merges (
+CREATE TABLE IF NOT EXISTS public.donee_merges (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL DEFAULT public.current_org_id()
                        REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -54,15 +56,17 @@ CREATE TABLE public.donee_merges (
   undone_by       uuid REFERENCES public.users(id)
 );
 
-CREATE INDEX donee_merges_org_recent_idx
+CREATE INDEX IF NOT EXISTS donee_merges_org_recent_idx
   ON public.donee_merges(organization_id, merged_at DESC);
-CREATE INDEX donee_merges_winner_idx
+CREATE INDEX IF NOT EXISTS donee_merges_winner_idx
   ON public.donee_merges(winner_id) WHERE undone_at IS NULL;
 
 ALTER TABLE public.donee_merges ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS donee_merges_select ON public.donee_merges;
 CREATE POLICY donee_merges_select ON public.donee_merges
   FOR SELECT TO authenticated
   USING (public.is_app_user() AND organization_id = public.current_org_id());
+DROP POLICY IF EXISTS donee_merges_admin_all ON public.donee_merges;
 CREATE POLICY donee_merges_admin_all ON public.donee_merges
   FOR ALL TO authenticated
   USING (public.is_admin() AND organization_id = public.current_org_id())
@@ -139,7 +143,9 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WHERE p.score >= min_score
     AND NOT EXISTS (
       SELECT 1 FROM public.donee_dup_rejections r
-      WHERE r.donee_a_id = p.a_id AND r.donee_b_id = p.b_id
+      WHERE r.organization_id = public.current_org_id()
+        AND r.donee_a_id = p.a_id
+        AND r.donee_b_id = p.b_id
     )
   ORDER BY p.score DESC, p.a_id, p.b_id;
 $$;
