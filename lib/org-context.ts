@@ -16,6 +16,7 @@ export type Features = {
   tax_summary?: boolean;
   import?: boolean;
   exports?: boolean;
+  dedup?: boolean;
   [key: string]: boolean | undefined;
 };
 
