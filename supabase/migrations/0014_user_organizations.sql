@@ -26,7 +26,9 @@ CREATE INDEX IF NOT EXISTS user_organizations_org_idx  ON public.user_organizati
 
 -- Backfill: every existing user gets a membership row for their home org.
 INSERT INTO public.user_organizations (user_id, organization_id, role)
-SELECT u.id, u.organization_id, u.role
+SELECT u.id,
+       u.organization_id,
+       CASE WHEN u.role = 'admin' THEN 'admin' ELSE 'member' END
 FROM public.users u
 WHERE u.organization_id IS NOT NULL
 ON CONFLICT (user_id, organization_id) DO NOTHING;
