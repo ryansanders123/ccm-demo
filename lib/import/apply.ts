@@ -129,13 +129,16 @@ async function ensureTaxonomyEntry(
   table: "funds" | "campaigns" | "appeals",
   cache: Map<string, string>,
   name: string,
+  organizationId: string | null | undefined,
 ): Promise<string> {
   const key = name.toLowerCase();
   const hit = cache.get(key);
   if (hit) return hit;
+  const payload: Record<string, unknown> = { name };
+  if (organizationId) payload.organization_id = organizationId;
   const { data, error } = await supabase
     .from(table)
-    .insert({ name })
+    .insert(payload)
     .select("id")
     .single();
   if (error) throw new Error(`create ${table} "${name}": ${error.message}`);
@@ -154,6 +157,11 @@ export type ApplyContext = {
   sourceName: string;
   importBatchId: string;
   createdBy: string;          // public.users.id of the importing admin
+  // When set, every insert sets organization_id explicitly (required
+  // for service-role CLI calls that bypass RLS and skip the column
+  // DEFAULT). UI server-action calls leave it null and let the DEFAULT
+  // (= public.current_org_id()) populate it.
+  organizationId?: string | null;
 };
 
 export async function applyChunk(
@@ -178,21 +186,19 @@ export async function applyChunk(
       rowToDoneeId.set(row.rowIndex, match.doneeId);
       result.doneesMatched++;
     } else {
-      newDoneeRows.push({
-        row,
-        payload: {
-          name: row.donor.name,
-          email: row.donor.email,
-          phone: row.donor.phone,
-          address_line1: row.donor.address_line1,
-          address_line2: row.donor.address_line2,
-          city: row.donor.city,
-          state: row.donor.state,
-          zip: row.donor.zip,
-          // organization_id auto-populated via column default
-          // created_by left null; the importing admin is logged on the batch
-        },
-      });
+      const payload: Record<string, unknown> = {
+        name: row.donor.name,
+        email: row.donor.email,
+        phone: row.donor.phone,
+        address_line1: row.donor.address_line1,
+        address_line2: row.donor.address_line2,
+        city: row.donor.city,
+        state: row.donor.state,
+        zip: row.donor.zip,
+        // created_by left null; the importing admin is logged on the batch
+      };
+      if (ctx.organizationId) payload.organization_id = ctx.organizationId;
+      newDoneeRows.push({ row, payload });
     }
   }
 
@@ -218,11 +224,15 @@ export async function applyChunk(
     // Store external refs for the newly-created donees.
     const refs = newDoneeRows
       .filter((r) => r.row.donor.external_id)
-      .map((r) => ({
-        donee_id: rowToDoneeId.get(r.row.rowIndex)!,
-        source_name: ctx.sourceName,
-        external_id: r.row.donor.external_id!,
-      }));
+      .map((r) => {
+        const ref: Record<string, unknown> = {
+          donee_id: rowToDoneeId.get(r.row.rowIndex)!,
+          source_name: ctx.sourceName,
+          external_id: r.row.donor.external_id!,
+        };
+        if (ctx.organizationId) ref.organization_id = ctx.organizationId;
+        return ref;
+      });
     if (refs.length > 0) {
       const { error: refErr } = await ctx.supabase
         .from("donee_external_refs")
@@ -253,6 +263,7 @@ export async function applyChunk(
           "funds",
           ctx.taxonomy.funds,
           row.fund_name,
+          ctx.organizationId,
         );
       }
       if (row.campaign_name) {
@@ -261,6 +272,7 @@ export async function applyChunk(
           "campaigns",
           ctx.taxonomy.campaigns,
           row.campaign_name,
+          ctx.organizationId,
         );
       }
       if (row.appeal_name) {
@@ -269,6 +281,7 @@ export async function applyChunk(
           "appeals",
           ctx.taxonomy.appeals,
           row.appeal_name,
+          ctx.organizationId,
         );
       }
 
@@ -282,7 +295,7 @@ export async function applyChunk(
         continue;
       }
 
-      toInsert.push({
+      const payload: Record<string, unknown> = {
         donee_id: doneeId,
         fund_id: fundId,
         campaign_id: campaignId,
@@ -296,8 +309,9 @@ export async function applyChunk(
         external_id: row.external_id,
         import_batch_id: ctx.importBatchId,
         created_by: ctx.createdBy,
-        // organization_id auto-populated via column default
-      });
+      };
+      if (ctx.organizationId) payload.organization_id = ctx.organizationId;
+      toInsert.push(payload);
     } catch (e) {
       result.errors.push({
         rowIndex: row.rowIndex,

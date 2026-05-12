@@ -11,11 +11,15 @@ const SYNONYMS: Record<TargetField, string[]> = {
   external_id: ["transaction id", "txn id", "txnid", "gift id", "reference", "receipt", "transaction number", "transactionnumber"],
   check_number: ["check number", "check no", "check num"],
   reference_id: ["reference id", "ref id", "payment id", "stripe id"],
-  fund_name: ["fund", "designation", "fund name", "gl code"],
+  // "gl code" is intentionally NOT a synonym: it's a financial ledger
+  // code, not a fund name (the user can map it manually if they want).
+  fund_name: ["fund", "designation", "fund name"],
   campaign_name: ["campaign", "campaign name"],
   appeal_name: ["appeal", "appeal name", "event"],
   note: ["note", "memo", "comments", "comment"],
-  donor_name: ["donor", "donor name", "full name", "name", "constituent"],
+  // "donor" alone is too greedy (matches "Donor covered fee", "Donor ID",
+  // etc.). Require more context for the donor_name field.
+  donor_name: ["donor name", "donor full name", "full name", "constituent name", "name"],
   donor_first_name: ["first name", "first", "fname", "given name"],
   donor_last_name: ["last name", "last", "lname", "surname", "family name"],
   donor_company: ["company", "organization", "company name", "employer"],
@@ -45,13 +49,23 @@ function scoreHeader(header: string, synonym: string): number {
   const s = normalizeHeader(synonym);
   if (!h || !s) return 0;
   if (h === s) return 1.0;
-  if (h.includes(s) || s.includes(h)) return 0.7;
-  // Token overlap: how many tokens of s appear in h?
-  const hTokens = new Set(h.split(" "));
+
+  // "Substring" match must respect word boundaries — otherwise
+  // "donor covered fee" matches the "donor" synonym for donor_name.
+  const hTokens = h.split(" ");
   const sTokens = s.split(" ").filter((t) => t.length > 1);
   if (sTokens.length === 0) return 0;
-  const hits = sTokens.filter((t) => hTokens.has(t)).length;
-  return hits === sTokens.length ? 0.5 : 0;
+  const hTokenSet = new Set(hTokens);
+  const allHit = sTokens.every((t) => hTokenSet.has(t));
+  if (allHit) {
+    // 1.0 for exact equality (handled above); 0.8 when the header has
+    // extra tokens (e.g. "transaction date stamp" still maps to "transaction date").
+    return 0.8;
+  }
+  // Partial hit: half the synonym's tokens are present and the synonym
+  // is a single token (cover "Address" → "donor_address_line1" via "address").
+  if (sTokens.length === 1 && hTokenSet.has(sTokens[0])) return 0.6;
+  return 0;
 }
 
 // Returns the best (field, column, confidence) for each header.
