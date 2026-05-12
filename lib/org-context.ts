@@ -7,6 +7,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { currentAppUser } from "@/lib/auth";
 
 export type Features = {
+  donations?: boolean;
+  donors?: boolean;
+  reports?: boolean;
+  funds?: boolean;
   campaigns?: boolean;
   appeals?: boolean;
   tax_summary?: boolean;

@@ -7,7 +7,7 @@ import type { Features } from "@/lib/org-context";
 type Item = { href: string; label: string; feature?: keyof Features };
 
 const ITEMS: Item[] = [
-  { href: "/admin/funds", label: "Funds" },
+  { href: "/admin/funds", label: "Funds", feature: "funds" },
   { href: "/admin/campaigns", label: "Campaigns", feature: "campaigns" },
   { href: "/admin/appeals", label: "Appeals", feature: "appeals" },
   { href: "/admin/import", label: "Import", feature: "import" },

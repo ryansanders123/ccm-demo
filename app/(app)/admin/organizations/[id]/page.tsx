@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
   addUserToOrg,
   removeUserFromOrg,
@@ -8,6 +9,10 @@ import {
 } from "@/lib/org-actions";
 
 const FEATURE_KEYS: { key: string; label: string }[] = [
+  { key: "donations", label: "Donations" },
+  { key: "donors", label: "Donors" },
+  { key: "reports", label: "Reports" },
+  { key: "funds", label: "Funds" },
   { key: "campaigns", label: "Campaigns" },
   { key: "appeals", label: "Appeals" },
   { key: "tax_summary", label: "Tax summary" },
@@ -20,7 +25,8 @@ export default async function OrganizationDetailPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = createSupabaseServerClient();
+  await requireAdmin();
+  const supabase = createSupabaseServiceClient();
 
   const { data: org } = await supabase
     .from("organizations")

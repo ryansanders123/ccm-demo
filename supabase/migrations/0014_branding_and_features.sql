@@ -10,9 +10,9 @@
 -- on) and WRH with everything off — WRH is a reports-only tenant that
 -- shouldn't see donation features if a user lands on this app.
 --
--- RLS unchanged: organizations_select (added in 0011) gates by
--- id = current_org_id(), and the org switcher updates current_org_id
--- to a row the user has a user_organizations row for.
+-- Adds user_organizations as the many-org membership table. The org
+-- switcher updates current_org_id through switch_active_org(), which
+-- validates that the user has a membership row for the target org.
 
 ALTER TABLE public.organizations
   ADD COLUMN IF NOT EXISTS logo_url           text,
@@ -21,6 +21,135 @@ ALTER TABLE public.organizations
   ADD COLUMN IF NOT EXISTS mailing_address    text,
   ADD COLUMN IF NOT EXISTS tax_statement_text text,
   ADD COLUMN IF NOT EXISTS features           jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+CREATE TABLE IF NOT EXISTS public.user_organizations (
+  user_id         uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  role            text NOT NULL CHECK (role IN ('admin', 'member')),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, organization_id)
+);
+
+CREATE INDEX IF NOT EXISTS user_organizations_org_idx
+  ON public.user_organizations(organization_id);
+
+INSERT INTO public.user_organizations (user_id, organization_id, role)
+SELECT id,
+       organization_id,
+       CASE WHEN role = 'admin' THEN 'admin' ELSE 'member' END
+FROM public.users
+WHERE removed_at IS NULL
+ON CONFLICT (user_id, organization_id) DO UPDATE
+SET role = EXCLUDED.role;
+
+ALTER TABLE public.user_organizations ENABLE ROW LEVEL SECURITY;
+
+DROP TRIGGER IF EXISTS users_last_admin_guard_trg ON public.users;
+
+CREATE OR REPLACE FUNCTION public.user_organizations_last_admin_guard()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  other_admin_count int;
+BEGIN
+  IF OLD.role = 'admin' THEN
+    IF TG_OP = 'DELETE' THEN
+      SELECT count(*) INTO other_admin_count
+      FROM public.user_organizations
+      WHERE organization_id = OLD.organization_id
+        AND role = 'admin'
+        AND user_id <> OLD.user_id;
+
+      IF other_admin_count = 0 THEN
+        RAISE EXCEPTION 'cannot remove the last admin for an organization';
+      END IF;
+    ELSIF NEW.role <> 'admin'
+       OR NEW.organization_id IS DISTINCT FROM OLD.organization_id THEN
+      SELECT count(*) INTO other_admin_count
+      FROM public.user_organizations
+      WHERE organization_id = OLD.organization_id
+        AND role = 'admin'
+        AND user_id <> OLD.user_id;
+
+      IF other_admin_count = 0 THEN
+        RAISE EXCEPTION 'cannot remove the last admin for an organization';
+      END IF;
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS user_organizations_last_admin_guard_trg
+  ON public.user_organizations;
+CREATE TRIGGER user_organizations_last_admin_guard_trg
+BEFORE UPDATE OR DELETE ON public.user_organizations
+FOR EACH ROW EXECUTE FUNCTION public.user_organizations_last_admin_guard();
+
+DROP POLICY IF EXISTS user_organizations_select ON public.user_organizations;
+CREATE POLICY user_organizations_select ON public.user_organizations
+  FOR SELECT TO authenticated
+  USING (
+    public.is_admin()
+    OR EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = user_organizations.user_id
+        AND u.auth_user_id = auth.uid()
+        AND u.removed_at IS NULL
+    )
+  );
+
+DROP POLICY IF EXISTS user_organizations_admin_all ON public.user_organizations;
+CREATE POLICY user_organizations_admin_all ON public.user_organizations
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE OR REPLACE FUNCTION public.switch_active_org(p_slug text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  app_user public.users;
+  membership record;
+BEGIN
+  SELECT *
+  INTO app_user
+  FROM public.users
+  WHERE auth_user_id = auth.uid()
+    AND removed_at IS NULL
+  LIMIT 1;
+
+  IF app_user.id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT uo.organization_id, uo.role
+  INTO membership
+  FROM public.user_organizations uo
+  JOIN public.organizations o ON o.id = uo.organization_id
+  WHERE uo.user_id = app_user.id
+    AND o.slug = p_slug
+  LIMIT 1;
+
+  IF membership.organization_id IS NULL THEN
+    RAISE EXCEPTION 'Not a member of %', p_slug;
+  END IF;
+
+  UPDATE public.users
+  SET organization_id = membership.organization_id,
+      role = CASE WHEN membership.role = 'admin' THEN 'admin' ELSE 'user' END
+  WHERE id = app_user.id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.switch_active_org(text) TO authenticated;
 
 -- Allow members of an org to read its branding so the layout can render
 -- it (previous select policy was scoped to current_org_id only, which is
@@ -31,6 +160,8 @@ DROP POLICY IF EXISTS organizations_select ON public.organizations;
 CREATE POLICY organizations_select ON public.organizations
   FOR SELECT TO authenticated
   USING (
+    public.is_admin()
+    OR
     EXISTS (
       SELECT 1
       FROM public.user_organizations uo
@@ -51,7 +182,11 @@ SET logo_url       = COALESCE(logo_url, '/logo.png'),
                           'appeals',     true,
                           'tax_summary', true,
                           'import',      true,
-                          'exports',     true
+                          'exports',     true,
+                          'donations',   true,
+                          'donors',      true,
+                          'reports',     true,
+                          'funds',       true
                         )
 WHERE slug = 'ccmc';
 
@@ -64,7 +199,11 @@ SET features = features
                     'appeals',     false,
                     'tax_summary', false,
                     'import',      false,
-                    'exports',     false
+                    'exports',     false,
+                    'donations',   false,
+                    'donors',      false,
+                    'reports',     true,
+                    'funds',       false
                   )
 WHERE slug = 'wrh';
 

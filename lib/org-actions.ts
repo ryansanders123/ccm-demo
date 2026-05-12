@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireUser, requireAdmin } from "@/lib/auth";
 
 // Switch the calling user's active org. The new org must be one the
@@ -9,28 +10,11 @@ import { requireUser, requireAdmin } from "@/lib/auth";
 // users.organization_id (the field current_org_id() reads) AND
 // users.role (so the active org's role is what is_admin() sees).
 export async function switchActiveOrg(slug: string): Promise<void> {
-  const user = await requireUser();
+  await requireUser();
   const supabase = createSupabaseServerClient();
 
-  // Resolve target org by slug AND verify membership in one query.
-  const { data: target, error: tErr } = await supabase
-    .from("user_organizations")
-    .select("organization_id, role, organizations!inner(id, slug)")
-    .eq("organizations.slug", slug)
-    .maybeSingle();
-  if (tErr) throw new Error(`switchActiveOrg: ${tErr.message}`);
-  if (!target) throw new Error(`Not a member of "${slug}"`);
-
-  const newOrgId = target.organization_id as string;
-  const newRole = ((target.role as string) ?? "user").toLowerCase();
-  // Map junction roles ("admin"/"member") to users.role enum ("admin"/"user").
-  const mappedRole = newRole === "admin" ? "admin" : "user";
-
-  const { error: uErr } = await supabase
-    .from("users")
-    .update({ organization_id: newOrgId, role: mappedRole })
-    .eq("id", user.id);
-  if (uErr) throw new Error(`switchActiveOrg: update users: ${uErr.message}`);
+  const { error } = await supabase.rpc("switch_active_org", { p_slug: slug });
+  if (error) throw new Error(`switchActiveOrg: ${error.message}`);
 
   revalidatePath("/", "layout");
 }
@@ -49,7 +33,7 @@ export async function createOrganization(input: {
   tax_statement_text?: string;
 }): Promise<{ id: string }> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const slug = input.slug.toLowerCase().trim();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
     throw new Error("slug must be lowercase letters/digits/hyphens, starting with alphanumeric");
@@ -65,6 +49,10 @@ export async function createOrganization(input: {
       mailing_address: input.mailing_address ?? null,
       tax_statement_text: input.tax_statement_text ?? null,
       features: {
+        donations: true,
+        donors: true,
+        reports: true,
+        funds: true,
         campaigns: true,
         appeals: true,
         tax_summary: true,
@@ -89,7 +77,7 @@ export async function updateOrganizationBranding(input: {
   tax_statement_text: string | null;
 }): Promise<void> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("organizations")
     .update({
@@ -111,7 +99,7 @@ export async function updateOrganizationFeatures(input: {
   features: Record<string, boolean>;
 }): Promise<void> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("organizations")
     .update({ features: input.features })
@@ -129,7 +117,7 @@ export async function addUserToOrg(input: {
   role?: "admin" | "member";
 }): Promise<void> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const email = input.email.toLowerCase().trim();
   const role = input.role ?? "member";
 
@@ -157,7 +145,7 @@ export async function removeUserFromOrg(input: {
   orgId: string;
 }): Promise<void> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("user_organizations")
     .delete()
@@ -179,7 +167,7 @@ export async function onboardOrganization(input: {
   adminEmail: string;
 }): Promise<{ orgId: string }> {
   await requireAdmin();
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { id: orgId } = await createOrganization({
     slug: input.slug,
     name: input.name,

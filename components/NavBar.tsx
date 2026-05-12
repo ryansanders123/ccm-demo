@@ -58,9 +58,15 @@ export function NavBar({
         </Link>
 
         <div className="hidden md:flex items-center gap-0.5">
-          <NavLink href="/donations/add">Add</NavLink>
-          <NavLink href="/donors" matchPrefix>Donors</NavLink>
-          <NavLink href="/report">Report</NavLink>
+          {feature(features, "donations") && (
+            <NavLink href="/donations/add">Add</NavLink>
+          )}
+          {feature(features, "donors") && (
+            <NavLink href="/donors" matchPrefix>Donors</NavLink>
+          )}
+          {feature(features, "reports") && (
+            <NavLink href="/report">Report</NavLink>
+          )}
           {feature(features, "tax_summary") && (
             <NavLink href="/tax-summary" matchPrefix>Tax</NavLink>
           )}
@@ -99,9 +105,15 @@ export function NavBar({
       {/* Mobile nav strip — visible below md */}
       <div className="md:hidden border-t border-stone-200/60 bg-white/70 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-          <NavLink href="/donations/add">Add</NavLink>
-          <NavLink href="/donors" matchPrefix>Donors</NavLink>
-          <NavLink href="/report">Report</NavLink>
+          {feature(features, "donations") && (
+            <NavLink href="/donations/add">Add</NavLink>
+          )}
+          {feature(features, "donors") && (
+            <NavLink href="/donors" matchPrefix>Donors</NavLink>
+          )}
+          {feature(features, "reports") && (
+            <NavLink href="/report">Report</NavLink>
+          )}
           {feature(features, "tax_summary") && (
             <NavLink href="/tax-summary" matchPrefix>Tax</NavLink>
           )}
