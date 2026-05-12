@@ -38,6 +38,7 @@ export function NavBar({ user }: { user: AppUser }) {
           <NavLink href="/donations/add">Add</NavLink>
           <NavLink href="/donors" matchPrefix>Donors</NavLink>
           <NavLink href="/report">Report</NavLink>
+          <NavLink href="/reports" matchPrefix>Analysis</NavLink>
           <NavLink href="/tax-summary" matchPrefix>Tax</NavLink>
           {isAdmin && <NavLink href="/admin" matchPrefix>Admin</NavLink>}
         </div>
@@ -74,6 +75,7 @@ export function NavBar({ user }: { user: AppUser }) {
           <NavLink href="/donations/add">Add</NavLink>
           <NavLink href="/donors" matchPrefix>Donors</NavLink>
           <NavLink href="/report">Report</NavLink>
+          <NavLink href="/reports" matchPrefix>Analysis</NavLink>
           <NavLink href="/tax-summary" matchPrefix>Tax</NavLink>
           {isAdmin && <NavLink href="/admin" matchPrefix>Admin</NavLink>}
         </div>
