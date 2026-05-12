@@ -20,21 +20,15 @@ export type UbiRow = {
 };
 
 async function fetchAll<T extends Record<string, unknown>>(
-  table: "ar_vr_vh_summary" | "accudata_ubi",
-  columns: string,
+  rpcName: "pds_ar_vr_vh_rows" | "pds_accudata_ubi_rows",
 ): Promise<T[]> {
   const supabase = createSupabaseServerClient();
   const rows: T[] = [];
   let from = 0;
 
   for (;;) {
-    const { data, error } = await supabase
-      .schema("pds")
-      .from(table)
-      .select(columns)
-      .range(from, from + PAGE_SIZE - 1);
-
-    if (error) throw new Error(`load pds.${table}: ${error.message}`);
+    const { data, error } = await supabase.rpc(rpcName).range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`load ${rpcName}: ${error.message}`);
     if (!data || data.length === 0) break;
 
     rows.push(...(data as unknown as T[]));
@@ -46,12 +40,9 @@ async function fetchAll<T extends Record<string, unknown>>(
 }
 
 export async function getArVrVhRows(): Promise<ArVrVhRow[]> {
-  return fetchAll<ArVrVhRow>(
-    "ar_vr_vh_summary",
-    "county,gender,age_segment,flg_dem,flg_rep,voting_recency,records",
-  );
+  return fetchAll<ArVrVhRow>("pds_ar_vr_vh_rows");
 }
 
 export async function getUbiRows(): Promise<UbiRow[]> {
-  return fetchAll<UbiRow>("accudata_ubi", "state,zip,ubi,households");
+  return fetchAll<UbiRow>("pds_accudata_ubi_rows");
 }
