@@ -3,7 +3,6 @@ import type {
   ApplyChunkResult,
   Mapping,
   NormalizedRow,
-  RowError,
 } from "./types";
 import {
   type DoneeIndex,

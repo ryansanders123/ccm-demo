@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Papa from "papaparse";
 import { autoDetect, detectionsToMapping } from "@/lib/import/autoDetect";
 import type {
@@ -87,7 +87,6 @@ export default function ImportPage() {
 
   const [batchId, setBatchId] = useState<string | null>(null);
   const [progress, setProgress] = useState({ processed: 0, total: 0 });
-  const [running, setRunning] = useState(false);
   const [finalResult, setFinalResult] = useState<{
     inserted: number;
     duplicates: number;
@@ -218,7 +217,6 @@ export default function ImportPage() {
   async function onConfirm() {
     if (!file || !mapping) return;
     setError(null);
-    setRunning(true);
     setStep("importing");
     setProgress({ processed: 0, total: rawRows.length });
 
@@ -279,8 +277,6 @@ export default function ImportPage() {
         try { await failBatch(batchId, msg); } catch {}
       }
       setStep("result");
-    } finally {
-      setRunning(false);
     }
   }
 
