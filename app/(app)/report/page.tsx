@@ -275,10 +275,12 @@ export default async function ReportPage({
           <div className="space-y-1.5">
             {Object.entries(sum.byFund).map(([fund, n]) => (
               <div
-                key={fund}
+                key={fund || "__unassigned__"}
                 className="flex justify-between text-sm text-stone-700 gap-3"
               >
-                <span className="truncate">{fund}</span>
+                <span className={`truncate ${fund ? "" : "italic text-stone-500"}`}>
+                  {fund || "Unassigned"}
+                </span>
                 <span className="font-medium tabular-nums shrink-0">
                   ${n.toFixed(2)}
                 </span>

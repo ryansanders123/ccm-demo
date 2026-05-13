@@ -1,12 +1,18 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { inviteUser, setUserRole, removeUser } from "@/app/(app)/admin/actions";
+import { currentAppUser } from "@/lib/auth";
+import { RelativeTime } from "@/components/RelativeTime";
 
 export default async function UsersPage() {
   const supabase = await createSupabaseServerClient();
-  const { data: users } = await supabase
-    .from("users")
-    .select("id,email,role,last_login_at,removed_at,auth_user_id,platform_admin")
-    .order("invited_at", { ascending: false });
+  const [{ data: users }, currentUser] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id,email,role,last_login_at,removed_at,auth_user_id,platform_admin")
+      .order("invited_at", { ascending: false }),
+    currentAppUser(),
+  ]);
+  const currentUserId = currentUser?.id ?? null;
 
   async function invite(fd: FormData) {
     "use server";
@@ -92,6 +98,8 @@ export default async function UsersPage() {
                       : status === "invited"
                       ? "bg-amber-50 text-amber-800 border-amber-200"
                       : "bg-stone-100 text-stone-500 border-stone-200";
+                  const isSelf = currentUserId !== null && u.id === currentUserId;
+                  const selfTitle = "You can't modify your own account";
                   return (
                     <tr
                       key={u.id}
@@ -99,6 +107,11 @@ export default async function UsersPage() {
                     >
                       <td className="px-4 py-3 font-medium text-stone-900">
                         {u.email}
+                        {isSelf && (
+                          <span className="ml-2 text-[10px] uppercase tracking-wider text-stone-400">
+                            (you)
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {u.role === "admin" ? (
@@ -107,8 +120,8 @@ export default async function UsersPage() {
                           <span className="chip-neutral">{u.role}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-stone-600">
-                        {u.last_login_at ?? "—"}
+                      <td className="px-4 py-3 text-stone-600">
+                        <RelativeTime iso={u.last_login_at} />
                       </td>
                       <td className="px-4 py-3 text-stone-600">
                         {u.auth_user_id ? "linked" : "—"}
@@ -132,7 +145,11 @@ export default async function UsersPage() {
                           ) : (
                             <form action={demote}>
                               <input type="hidden" name="id" value={u.id} />
-                              <button className="btn-secondary btn-sm">
+                              <button
+                                className="btn-secondary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSelf}
+                                title={isSelf ? selfTitle : undefined}
+                              >
                                 Demote
                               </button>
                             </form>
@@ -140,7 +157,11 @@ export default async function UsersPage() {
                           {!u.removed_at && (
                             <form action={remove}>
                               <input type="hidden" name="id" value={u.id} />
-                              <button className="btn-danger btn-sm">
+                              <button
+                                className="btn-danger btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSelf}
+                                title={isSelf ? selfTitle : undefined}
+                              >
                                 Remove
                               </button>
                             </form>

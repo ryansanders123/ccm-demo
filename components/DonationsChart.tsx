@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -78,6 +78,8 @@ function formatTooltipUsd(value: unknown): string {
 
 export function DonationsChart({ data }: { data: MonthlyTotalsData }) {
   const [mode, setMode] = useState<Mode>("total");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const chartData = useMemo(() => {
     return data.months.map((m, i) => {
@@ -132,6 +134,7 @@ export function DonationsChart({ data }: { data: MonthlyTotalsData }) {
         aria-label="Monthly donation totals"
         className="h-[240px] md:h-[320px] w-full"
       >
+        {mounted && (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -188,6 +191,7 @@ export function DonationsChart({ data }: { data: MonthlyTotalsData }) {
               ))}
           </LineChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

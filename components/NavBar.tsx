@@ -44,15 +44,15 @@ export function NavBar({
 
   return (
     <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200/60">
-      <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center gap-2">
-        <Link href="/" className="flex items-center gap-3 mr-auto group">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-3 mr-auto group min-w-0 shrink">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={orgLogo} alt={orgName} className="h-9 w-auto" />
-          <div className="hidden sm:flex flex-col leading-tight">
-            <span className="font-serif text-[17px] text-brand-700 tracking-tight group-hover:text-brand-800 transition-colors">
+          <img src={orgLogo} alt={orgName} className="h-9 w-auto shrink-0" />
+          <div className="hidden sm:flex flex-col leading-tight min-w-0">
+            <span className="font-serif text-[17px] text-brand-700 tracking-tight whitespace-nowrap truncate group-hover:text-brand-800 transition-colors">
               {orgName}
             </span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400 whitespace-nowrap truncate">
               {orgTagline}
             </span>
           </div>
@@ -94,10 +94,10 @@ export function NavBar({
               </span>
             </div>
           </div>
-          <form action="/auth/signout" method="post" className="inline">
+          <form action="/auth/signout" method="post" className="inline shrink-0">
             <button
               type="submit"
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm whitespace-nowrap"
               title="Sign out"
             >
               Sign out
